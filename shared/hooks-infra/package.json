@@ -1,0 +1,27 @@
+{
+  "name": "hooks-infra",
+  "version": "1.0.0",
+  "description": "Shared hook infrastructure for Claude Code plugins",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@tsconfig/node22": "^22.0.0",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.8.0",
+    "vitest": "^2.1.0",
+    "@vitest/coverage-v8": "^2.1.0"
+  },
+  "overrides": {
+    "esbuild": "^0.25.0"
+  },
+  "license": "UNLICENSED",
+  "private": true
+}

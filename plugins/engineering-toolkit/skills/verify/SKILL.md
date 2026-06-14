@@ -1,0 +1,150 @@
+---
+name: verify
+description: "Run tests, linting, and type checking with structured evidence collection. Auto-detects project stack (Node, Python, Rust). Reports quality level: all clear, warnings, failures, or blocked. Use when: validating code before commit, checking CI readiness, running all project checks, or collecting evidence for a PR. Triggers on: verify, run checks, quality check, run tests, does it pass, lint, typecheck, pre-commit check, green, validate"
+effort: medium
+paths:
+  - "**/*.test.*"
+  - "**/*.spec.*"
+  - "package.json"
+  - "tsconfig.json"
+context: fork
+keep-coding-instructions: true
+---
+
+# Verify
+
+Run a structured quality verification pass and collect evidence. Works standalone or as the final phase of `/develop`.
+
+## Verification Pass
+
+Execute these checks in order. Skip any that don't apply to the current project (e.g., skip typecheck if no TypeScript).
+
+### Step 1: Detect Project Stack
+
+Scan for configuration files to determine which checks apply:
+
+| File | Check Enabled |
+|------|---------------|
+| `package.json` with `test` script | Tests (npm) |
+| `pytest.ini`, `pyproject.toml` with pytest | Tests (pytest) |
+| `tsconfig.json` | TypeScript typecheck |
+| `biome.json`, `.eslintrc*` | JS/TS linting |
+| `ruff.toml`, `pyproject.toml` with ruff | Python linting |
+| `Cargo.toml` | Rust checks (`cargo test`, `cargo clippy`) |
+
+### Step 2: Run Checks
+
+Run all applicable checks. Capture exit code, output summary, and duration for each.
+
+```bash
+# Tests (pick the right runner)
+npm test -- --run          # Node.js (vitest/jest)
+pytest                     # Python
+cargo test                 # Rust
+
+# Type checking
+npx tsc --noEmit           # TypeScript
+mypy .                     # Python (if configured)
+
+# Linting
+npx biome check .          # Biome
+npx eslint .               # ESLint
+ruff check .               # Python
+cargo clippy               # Rust
+```
+
+**Important**: Run each check independently. A failure in one should not prevent running the others — collect all evidence.
+
+### Step 3: Collect Evidence
+
+For each check, record:
+
+| Field | Value |
+|-------|-------|
+| Check | test / typecheck / lint |
+| Command | Exact command run |
+| Exit code | 0 = pass, non-zero = fail |
+| Duration | Seconds |
+| Summary | Pass/fail counts, error count, warning count |
+| Key output | First 10 lines of errors if failed |
+
+### Step 4: Assess Quality Level
+
+Based on collected evidence, assign a quality level:
+
+| Level | Criteria | Action |
+|-------|----------|--------|
+| **All clear** | Every check passes (exit 0) | Safe to commit/PR |
+| **Warnings only** | All pass but lint warnings exist | Review warnings, commit if acceptable |
+| **Failures** | One or more checks fail | Fix failures before proceeding |
+| **Blocked** | Tests can't run (missing deps, build broken) | Resolve blockers first |
+
+### Step 5: Present Results
+
+Present a summary table:
+
+```
+## Verification Results
+
+| Check      | Status | Duration | Details          |
+|------------|--------|----------|------------------|
+| Tests      | PASS   | 12.4s    | 24 passed, 0 failed |
+| Typecheck  | PASS   | 3.2s     | No errors        |
+| Lint       | WARN   | 1.1s     | 0 errors, 3 warnings |
+
+**Quality Level**: Warnings only
+**Recommendation**: Review 3 lint warnings, then safe to commit.
+```
+
+If any check failed, show the key error output and suggest fixes.
+
+## Options
+
+The user can request specific scopes:
+
+- `/verify` — Run all applicable checks (default)
+- `/verify tests` — Run only tests
+- `/verify lint` — Run only linting
+- `/verify typecheck` — Run only type checking
+- `/verify --fix` — Run lint with auto-fix, then verify
+
+## Integration with /develop
+
+When invoked as Phase 5 of `/develop`, follow the same process but also:
+- Check evidence against quality-gates thresholds (see `etk:quality-gates`)
+- Present the human checkpoint with continue/adjust/stop options
+
+## CC Tool Notes
+
+- **Monitor tool** (CC 2.1.98+): For long test/lint/typecheck runs, use `Bash(run_in_background: true)` then `Monitor` to stream stdout events. Detects failures in real-time without blocking the conversation.
+
+## Evidence Standards
+
+For detailed evidence templates and production-grade requirements, see `${CLAUDE_SKILL_DIR}/references/evidence-standards.md`.
+
+## Compliance
+
+### Iron Laws
+
+Violating the letter of these rules is violating the spirit of the rules.
+
+**IRON LAW: NEVER REPORT A CHECK AS PASSING WITHOUT ACTUALLY RUNNING IT**
+
+**IRON LAW: NEVER SUPPRESS OR IGNORE FAILING CHECK OUTPUT**
+
+### Red Flags
+
+| If You're Thinking... | Required Action |
+|---|---|
+| "This check doesn't apply to this project" | STOP. Verify by looking for config files. Don't assume — detect. |
+| "The test failed but it's probably flaky" | STOP. Run it again. If it fails twice, it's a real failure. Report it. |
+| "Linting warnings aren't important" | STOP. Warnings are evidence. Report them and let the user decide severity. |
+| "I already know the code is correct" | STOP. Verification exists because confidence is not evidence. Run the checks. |
+
+### Common Rationalizations
+
+| Rationalization | Why It's Wrong |
+|---|---|
+| "The build succeeded so it must be correct" | Build success means no syntax errors. It says nothing about logic, behavior, or test coverage. |
+| "These are just style warnings" | Style consistency prevents bugs by making code predictable. Style warnings may also mask real issues in noisy output. |
+| "Type checking passed, tests are redundant" | Types verify structure; tests verify behavior. Both are required — they catch different categories of bugs. |

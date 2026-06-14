@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Pre-commit hook: auto-bump patch version for plugins with source changes,
+# then validate version consistency across all manifest files.
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+
+# Step 1: auto-bump any plugin whose source changed but version matches main
+bash "$REPO_ROOT/plugins/scripts/auto-bump-version.sh"
+
+# Step 2: validate all version references are consistent
+exec bash "$REPO_ROOT/plugins/scripts/validate-versions.sh"

@@ -1,0 +1,9 @@
+{
+  "name": "ctk-pi-adapter",
+  "private": true,
+  "type": "module",
+  "description": "Pi Coding Agent adapter for the Continuity Toolkit Claude Code hooks",
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  }
+}

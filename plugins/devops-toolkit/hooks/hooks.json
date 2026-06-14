@@ -1,0 +1,22 @@
+{
+  "description": "DevOps Toolkit hooks - Repository access control",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh ${CLAUDE_PLUGIN_ROOT}/hooks/bin/run-hook-wrapper.sh lifecycle/repo-access-guard",
+            "timeout": 5,
+            "once": true
+          },
+          {
+            "type": "command",
+            "command": "sh ${CLAUDE_PLUGIN_ROOT}/hooks/bin/run-hook-wrapper.sh lifecycle/continuity-recommendation",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

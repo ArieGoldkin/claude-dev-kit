@@ -1,0 +1,16 @@
+{
+  "description": "Engineering Toolkit hooks - Code review logging",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh ${CLAUDE_PLUGIN_ROOT}/hooks/bin/run-hook-wrapper.sh lifecycle/continuity-recommendation",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

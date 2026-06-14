@@ -1,0 +1,16 @@
+{
+  "description": "Frontend Toolkit hooks - Continuity recommendation",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh ${CLAUDE_PLUGIN_ROOT}/hooks/bin/run-hook-wrapper.sh lifecycle/continuity-recommendation",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

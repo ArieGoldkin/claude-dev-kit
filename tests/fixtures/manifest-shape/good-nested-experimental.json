@@ -1,0 +1,9 @@
+{
+  "name": "good-fixture",
+  "version": "0.0.0",
+  "description": "Fixture: themes and monitors correctly nested under experimental — must pass",
+  "experimental": {
+    "themes": [{ "name": "dark" }],
+    "monitors": [{ "name": "context" }]
+  }
+}

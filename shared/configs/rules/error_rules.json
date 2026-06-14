@@ -1,0 +1,97 @@
+{
+  "$schema": "./error_rules.schema.json",
+  "description": "Error patterns for plugin error warner hook",
+  "version": "1.0.0",
+  "rules": [
+    {
+      "id": "missing-await",
+      "pattern": "Promise { <pending> }",
+      "message": "You may have forgotten to await a Promise. Add 'await' before the async function call.",
+      "severity": "warning"
+    },
+    {
+      "id": "undefined-property",
+      "pattern": "Cannot read properties of undefined",
+      "message": "Check if the object exists before accessing properties. Use optional chaining (?.) or null checks.",
+      "severity": "error"
+    },
+    {
+      "id": "null-property",
+      "pattern": "Cannot read properties of null",
+      "message": "The object is null. Check for null values before accessing properties.",
+      "severity": "error"
+    },
+    {
+      "id": "not-a-function",
+      "pattern": "is not a function",
+      "message": "The value is not callable. Check that the function exists and is properly imported.",
+      "severity": "error"
+    },
+    {
+      "id": "module-not-found",
+      "pattern": "Cannot find module",
+      "message": "The module could not be found. Check the import path and ensure the package is installed.",
+      "severity": "error"
+    },
+    {
+      "id": "type-error-assignment",
+      "pattern": "Cannot set properties of",
+      "message": "Cannot assign to a property. The object may be undefined, null, or read-only.",
+      "severity": "error"
+    },
+    {
+      "id": "enoent",
+      "pattern": "ENOENT: no such file or directory",
+      "message": "The file or directory does not exist. Check the path spelling and ensure it was created.",
+      "severity": "error"
+    },
+    {
+      "id": "eacces",
+      "pattern": "EACCES: permission denied",
+      "message": "Permission denied. Check file permissions or try running with appropriate access rights.",
+      "severity": "error"
+    },
+    {
+      "id": "json-parse",
+      "pattern": "Unexpected token",
+      "message": "JSON parsing failed. Check for syntax errors like trailing commas or unquoted keys.",
+      "severity": "error"
+    },
+    {
+      "id": "port-in-use",
+      "pattern": "EADDRINUSE",
+      "message": "The port is already in use. Either stop the other process or use a different port.",
+      "severity": "error"
+    },
+    {
+      "id": "npm-peer-deps",
+      "pattern": "Could not resolve dependency",
+      "message": "NPM dependency conflict. Try using --legacy-peer-deps or update conflicting packages.",
+      "severity": "warning"
+    },
+    {
+      "id": "typescript-any",
+      "pattern": "has an implicit 'any' type",
+      "message": "TypeScript type inference failed. Add explicit type annotations.",
+      "severity": "warning"
+    },
+    {
+      "id": "eslint-error",
+      "pattern": "error  ",
+      "message": "ESLint found code style or potential bug issues. Run the linter fix command.",
+      "severity": "warning"
+    },
+    {
+      "id": "test-failed",
+      "pattern": "FAIL  ",
+      "message": "One or more tests failed. Review the test output for assertion failures.",
+      "severity": "error"
+    },
+    {
+      "id": "connection-refused",
+      "pattern": "ECONNREFUSED",
+      "message": "Connection refused. The server may not be running or is unreachable.",
+      "severity": "error"
+    }
+  ]
+}

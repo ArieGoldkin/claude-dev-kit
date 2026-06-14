@@ -1,0 +1,1 @@
+../../../../../shared/hooks-infra/src/hooks/lifecycle/task-completed-logger.ts

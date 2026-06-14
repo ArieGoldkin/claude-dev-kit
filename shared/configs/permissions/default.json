@@ -1,0 +1,90 @@
+{
+  "$schema": "./permissions.schema.json",
+  "name": "default",
+  "description": "Default permission profile for plugin development",
+  "version": "1.0.0",
+
+  "auto_approve": {
+    "tools": ["Read", "Glob", "Grep"],
+    "paths": [
+      "$PROJECT/src/**",
+      "$PROJECT/hooks/**",
+      "$PROJECT/tests/**",
+      "$PROJECT/skills/**",
+      "$PROJECT/agents/**",
+      "$PROJECT/commands/**",
+      "$PROJECT/instructions/**",
+      "$PROJECT/docs/**",
+      "$PROJECT/*.md",
+      "$PROJECT/*.json",
+      "$PROJECT/*.ts"
+    ],
+    "commands": [
+      "ls",
+      "pwd",
+      "whoami",
+      "git status",
+      "git log",
+      "git diff",
+      "git branch",
+      "git show",
+      "git remote -v",
+      "npm list",
+      "npm ls",
+      "npm outdated",
+      "npm --version",
+      "node --version",
+      "npx tsc --noEmit",
+      "npx vitest --run",
+      "cat",
+      "head",
+      "tail",
+      "grep",
+      "rg"
+    ]
+  },
+
+  "require_approval": {
+    "paths": [
+      "$PROJECT/package.json",
+      "$PROJECT/package-lock.json",
+      "$PROJECT/tsconfig.json",
+      "$PROJECT/.claude/**/*.json"
+    ],
+    "commands": [
+      "npm install",
+      "npm ci",
+      "npm update",
+      "git add",
+      "git commit",
+      "git push",
+      "git pull",
+      "git checkout",
+      "git merge",
+      "git rebase"
+    ]
+  },
+
+  "deny": {
+    "paths": [
+      "$PROJECT/.env",
+      "$PROJECT/.env.*",
+      "$PROJECT/.git/**",
+      "**/node_modules/**",
+      "**/.ssh/**",
+      "**/credentials*",
+      "**/secrets*"
+    ],
+    "commands": [
+      "rm -rf /",
+      "rm -rf /*",
+      "sudo ",
+      "su ",
+      "chmod 777",
+      "dd if=",
+      "mkfs.",
+      "diskutil eraseDisk",
+      "diskutil eraseVolume"
+    ]
+  }
+}

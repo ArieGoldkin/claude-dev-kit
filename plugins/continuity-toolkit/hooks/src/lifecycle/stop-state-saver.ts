@@ -1,0 +1,1 @@
+../../../../../shared/hooks-infra/src/hooks/lifecycle/stop-state-saver.ts

@@ -1,0 +1,47 @@
+# Semgrep ignore file for claude-dev-kit monorepo
+# These directories contain example/template code for AI assistance, not production code.
+#
+# Most recent triage (pipeline 2558090496): docs/reviews/2026-05-28_security-pipeline-2558090496-triage.md
+
+# Skill templates (example code snippets for reference)
+plugins/*/skills/
+plugins/*/.claude/skills/
+skills/
+.claude/skills/
+
+# Shared skills directory (symlinked into plugins) — templates and examples,
+# never executed inside the plugin runtime. Inline allowlist/sanitization
+# guidance lives in template comments where it matters to copy-pasters.
+shared/skills/
+
+# Remotion explainer-video animation specs (dev tool, never deployed).
+# Semgrep over-flags valid regex escape sequences in TSX as "Incorrect
+# regular expression" — verified false positives in pipeline 2558090496.
+tools/explainer-videos/
+
+# Dangerous-bash pattern registry + glob→regex helpers. Semgrep flags
+# "non-literal regexp" because these build RegExp from a static module
+# ANCHOR constant (registry) or a length-capped, escape-sanitized glob
+# (validators). FP by architecture — verified in pipeline 2558090496 /
+# 2560477230. Inline rule-ID-qualified `// nosemgrep` did NOT suppress in
+# GitLab's bundled analyzer (rule IDs differ), so path exclusion is used.
+# Behavior is covered by 1023 hooks-infra unit tests.
+shared/hooks-infra/src/lib/dangerous-bash/
+shared/hooks-infra/src/lib/git-validators.ts
+shared/hooks-infra/src/lib/permission-profiles.ts
+
+# Test files (already have their own security context)
+plugins/*/hooks/tests/
+shared/hooks-infra/tests/
+
+# Legacy scripts (local CLI tools, not servers)
+plugins/*/scripts/
+
+# Documentation with code examples
+docs/
+plugins/*/docs/
+
+# Build artifacts
+dist/
+node_modules/
+coverage/

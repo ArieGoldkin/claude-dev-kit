@@ -1,0 +1,1 @@
+../../../shared/commands/check-maintenance.md

@@ -1,0 +1,107 @@
+# Multi-Stage Dockerfile for AWS Lambda Container Images
+# Optimized for minimal image size and fast cold starts
+
+# ==============================================================================
+# PYTHON LAMBDA
+# ==============================================================================
+
+# --- Python: Build Stage ---
+FROM public.ecr.aws/lambda/python:3.12 AS python-builder
+
+# Install build dependencies
+RUN dnf install -y gcc python3-devel
+
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt -t /opt/python
+
+# --- Python: Runtime Stage ---
+FROM public.ecr.aws/lambda/python:3.12 AS python-runtime
+
+# Copy dependencies from builder
+COPY --from=python-builder /opt/python ${LAMBDA_TASK_ROOT}
+
+# Copy application code
+COPY src/ ${LAMBDA_TASK_ROOT}/
+
+# Set handler
+CMD ["app.handler"]
+
+
+# ==============================================================================
+# NODE.JS LAMBDA
+# ==============================================================================
+
+# --- Node.js: Build Stage ---
+FROM public.ecr.aws/lambda/nodejs:20 AS node-builder
+
+# Install dependencies
+COPY package*.json ./
+RUN npm ci --only=production
+
+# --- Node.js: Runtime Stage ---
+FROM public.ecr.aws/lambda/nodejs:20 AS node-runtime
+
+# Copy dependencies
+COPY --from=node-builder ${LAMBDA_TASK_ROOT}/node_modules ${LAMBDA_TASK_ROOT}/node_modules
+
+# Copy application code
+COPY dist/ ${LAMBDA_TASK_ROOT}/
+
+# Set handler
+CMD ["index.handler"]
+
+
+# ==============================================================================
+# GO LAMBDA (Provided.al2023)
+# ==============================================================================
+
+# --- Go: Build Stage ---
+FROM golang:1.22 AS go-builder
+
+WORKDIR /app
+
+# Download dependencies
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Build binary
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o bootstrap main.go
+
+# --- Go: Runtime Stage ---
+FROM public.ecr.aws/lambda/provided:al2023 AS go-runtime
+
+# Copy binary
+COPY --from=go-builder /app/bootstrap ${LAMBDA_TASK_ROOT}/bootstrap
+
+# Lambda looks for 'bootstrap' in provided runtime
+ENTRYPOINT ["/var/task/bootstrap"]
+
+
+# ==============================================================================
+# BEST PRACTICES
+# ==============================================================================
+#
+# 1. Use AWS-provided base images for compatibility:
+#    - public.ecr.aws/lambda/python:3.12
+#    - public.ecr.aws/lambda/nodejs:20
+#    - public.ecr.aws/lambda/provided:al2023
+#
+# 2. Multi-stage builds reduce image size:
+#    - Builder stage: install dependencies, compile code
+#    - Runtime stage: only production artifacts
+#
+# 3. LAMBDA_TASK_ROOT is /var/task (set by base image)
+#
+# 4. CMD format: ["module.function"] for Python/Node.js
+#
+# 5. For provided runtime (Go, Rust): binary must be named 'bootstrap'
+#
+# 6. Keep images under 500MB for faster cold starts
+#
+# 7. Pin base image versions for reproducibility:
+#    - Use specific tags, not 'latest'
+#    - Example: python:3.12-2024.01.01
+#
+# ==============================================================================

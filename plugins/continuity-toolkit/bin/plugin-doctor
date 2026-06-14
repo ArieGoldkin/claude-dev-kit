@@ -1,0 +1,159 @@
+#!/usr/bin/env bash
+# plugin-doctor — Cross-plugin diagnostics for Claude Code plugins
+#
+# Usage: plugin-doctor [--json]
+#
+# Checks installed plugins, hook build status, shared symlinks,
+# and environment configuration. Returns structured diagnostics.
+#
+# Available as a bare command from Claude Code's Bash tool (CC 2.1.91+).
+
+set -euo pipefail
+
+JSON_OUTPUT=false
+if [[ "${1:-}" == "--json" ]]; then
+  JSON_OUTPUT=true
+fi
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+PASS="${GREEN}PASS${NC}"
+FAIL="${RED}FAIL${NC}"
+WARN="${YELLOW}WARN${NC}"
+
+errors=0
+warnings=0
+
+check() {
+  local label="$1" status="$2" detail="${3:-}"
+  if [[ "$JSON_OUTPUT" == "true" ]]; then
+    echo "{\"check\":\"$label\",\"status\":\"$status\",\"detail\":\"$detail\"}"
+  else
+    case "$status" in
+      pass) echo -e "  ${PASS} $label${detail:+ — $detail}" ;;
+      fail) echo -e "  ${FAIL} $label${detail:+ — $detail}"; ((errors++)) ;;
+      warn) echo -e "  ${WARN} $label${detail:+ — $detail}"; ((warnings++)) ;;
+    esac
+  fi
+}
+
+header() {
+  if [[ "$JSON_OUTPUT" != "true" ]]; then
+    echo -e "\n${CYAN}$1${NC}"
+  fi
+}
+
+# =============================================================================
+# 1. Plugin Installation
+# =============================================================================
+header "Plugin Installation"
+
+PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
+if [[ -d "$PLUGIN_DIR" ]]; then
+  check "Plugin root exists" "pass" "$PLUGIN_DIR"
+else
+  check "Plugin root exists" "fail" "CLAUDE_PLUGIN_ROOT not set"
+fi
+
+# Check for other plugins in the cache
+CACHE_DIR="${HOME}/.claude/plugins/cache"
+if [[ -d "$CACHE_DIR" ]]; then
+  plugin_count=$(find "$CACHE_DIR" -maxdepth 2 -name "CLAUDE.md" 2>/dev/null | wc -l | tr -d ' ')
+  check "Plugins installed" "pass" "${plugin_count} plugin(s) found in cache"
+else
+  check "Plugins installed" "warn" "No plugin cache directory found"
+fi
+
+# =============================================================================
+# 2. Hook Build Status
+# =============================================================================
+header "Hook Builds"
+
+if [[ -f "$PLUGIN_DIR/hooks/dist/bin/run-hook.js" ]]; then
+  check "Hooks built" "pass" "dist/bin/run-hook.js exists"
+else
+  check "Hooks built" "fail" "Run: cd hooks && npm run build"
+fi
+
+if command -v node &>/dev/null; then
+  node_version=$(node --version)
+  check "Node.js available" "pass" "$node_version"
+else
+  check "Node.js available" "fail" "Node.js not found in PATH"
+fi
+
+# =============================================================================
+# 3. Shared Symlinks
+# =============================================================================
+header "Shared Symlinks"
+
+LIB_LINK="$PLUGIN_DIR/hooks/src/lib"
+if [[ -L "$LIB_LINK" ]]; then
+  target=$(readlink "$LIB_LINK")
+  check "src/lib symlink" "pass" "→ $target"
+else
+  check "src/lib symlink" "fail" "Not a symlink — shared code won't resolve"
+fi
+
+TYPES_LINK="$PLUGIN_DIR/hooks/src/types.ts"
+if [[ -L "$TYPES_LINK" ]]; then
+  check "src/types.ts symlink" "pass"
+else
+  check "src/types.ts symlink" "fail" "Not a symlink"
+fi
+
+# =============================================================================
+# 4. Environment
+# =============================================================================
+header "Environment"
+
+if [[ -n "${CLAUDE_SESSION_ID:-}" ]]; then
+  check "CLAUDE_SESSION_ID" "pass" "${CLAUDE_SESSION_ID:0:12}..."
+else
+  check "CLAUDE_SESSION_ID" "warn" "Not set (common — hooks use PID fallback)"
+fi
+
+if [[ -n "${CLAUDE_PROJECT_DIR:-}" ]]; then
+  check "CLAUDE_PROJECT_DIR" "pass" "$CLAUDE_PROJECT_DIR"
+else
+  check "CLAUDE_PROJECT_DIR" "warn" "Not set — will use cwd"
+fi
+
+# Check RTK
+if command -v rtk &>/dev/null; then
+  rtk_version=$(rtk --version 2>/dev/null || echo "unknown")
+  check "RTK installed" "pass" "$rtk_version"
+else
+  check "RTK installed" "warn" "Not installed — run /setup-rtk for ~88% token savings"
+fi
+
+# =============================================================================
+# 5. Security Settings
+# =============================================================================
+header "Security Settings"
+
+if [[ "${CLAUDE_CODE_SUBPROCESS_ENV_SCRUB:-}" == "1" ]]; then
+  check "ENV_SCRUB enabled" "pass" "Credentials stripped from subprocesses"
+else
+  check "ENV_SCRUB enabled" "warn" "Set CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1 for HIPAA compliance"
+fi
+
+# =============================================================================
+# Summary
+# =============================================================================
+if [[ "$JSON_OUTPUT" != "true" ]]; then
+  echo ""
+  if [[ $errors -gt 0 ]]; then
+    echo -e "${RED}$errors error(s)${NC}, ${YELLOW}$warnings warning(s)${NC}"
+    exit 1
+  elif [[ $warnings -gt 0 ]]; then
+    echo -e "${GREEN}All checks passed${NC} with ${YELLOW}$warnings warning(s)${NC}"
+  else
+    echo -e "${GREEN}All checks passed${NC}"
+  fi
+fi

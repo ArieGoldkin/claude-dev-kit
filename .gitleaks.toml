@@ -1,0 +1,59 @@
+# Extended Gitleaks Configuration
+# This extends the default gitleaks config with additional rules for low-entropy passwords and JDBC URLs
+
+[extend]
+# useDefault will extend the default gitleaks config built in to the binary
+# the latest version is located at:
+# https://github.com/gitleaks/gitleaks/blob/master/config/gitleaks.toml
+useDefault = true
+
+# ---------------------------------------------------------------------------
+# Class-wide allowlist (preferred over per-finding fingerprints in
+# .gitleaksignore — fingerprints break when lines move; path globs are
+# durable). Each block has a reason.
+#
+# Triage: docs/reviews/2026-05-28_security-pipeline-2558090496-triage.md
+# ---------------------------------------------------------------------------
+[allowlist]
+description = "Class-wide false-positive paths reviewed in pipeline 2558090496 triage"
+paths = [
+    # Test fixtures — secret-detector and write/edit hooks deliberately
+    # contain example credential strings (AKIAIOSFODNN7EXAMPLE,
+    # wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY, etc., all official AWS
+    # docs example strings) to verify the detectors catch them.
+    '''.*\.test\.ts$''',
+    '''.*/tests/.*''',
+
+    # Documentation showing URL format with example credentials.
+    # All such files use placeholder values like postgres:postgres,
+    # user:pass, etc. — not real credentials.
+    '''.*/skills/.*/(references|checklists|templates)/.*\.md$''',
+    '''.*/skills/.*/templates/.*\.(yml|yaml|sh)$''',
+    '''shared/skills/devops-deployment/templates/.*''',
+]
+
+# Extension: Low-entropy password detection
+[[rules]]
+id = "generic-password-low-entropy"
+description = "Detected a hardcoded password with low entropy, potentially exposing sensitive credentials."
+regex = '''(?i)(?:password|passwd|pwd|pass|secret)\s*[=:]\s*["']([^"']{4,50})["']'''
+entropy = 1.0
+
+# Extension: JDBC URL credentials detection
+[[rules]]
+id = "jdbc-url-credentials"
+description = "Detected JDBC URL containing embedded username and password, risking database credential exposure."
+regex = '''(?i)jdbc:(?:mysql|postgresql|sqlserver|oracle:thin)://[^/?]*(?:\?.*)?(?:user|username)=([^&;'"]+).*?(?:password|passwd|pwd)=([^&;'"]+)|jdbc:(?:mysql|postgresql|sqlserver|oracle:thin):[^'"]*(user|username)=([^&;'"]+)[^'"]*(?:password|passwd|pwd)=([^&;'"]+)'''
+entropy = 1.0
+keywords = [
+    "jdbc",
+    "mysql",
+    "postgresql",
+    "sqlserver",
+    "oracle",
+    "user=",
+    "username=",
+    "password=",
+    "passwd=",
+    "pwd=",
+]

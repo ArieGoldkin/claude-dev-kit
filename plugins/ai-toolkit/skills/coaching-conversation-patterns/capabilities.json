@@ -1,0 +1,129 @@
+{
+  "$schema": "../../schemas/skill-capabilities.schema.json",
+  "name": "coaching-conversation-patterns",
+  "version": "1.0.0",
+  "description": "AI health coaching conversation patterns for empathetic, safe, and effective member interactions",
+
+  "capabilities": {
+    "safety-guardrails": {
+      "keywords": ["safety", "guardrail", "medical advice", "crisis", "escalation", "harmful"],
+      "solves": [
+        "Detect medical advice requests",
+        "Identify crisis indicators",
+        "Implement safety validation",
+        "Handle escalation to human coaches"
+      ],
+      "reference_file": "references/safety-guardrails.md",
+      "token_cost": 250
+    },
+    "empathetic-responses": {
+      "keywords": ["empathy", "tone", "supportive", "validation", "acknowledgment", "EARS"],
+      "solves": [
+        "Generate empathetic coaching responses",
+        "Calibrate tone to member sentiment",
+        "Apply EARS framework",
+        "Avoid dismissive language"
+      ],
+      "reference_file": "references/empathetic-responses.md",
+      "token_cost": 200
+    },
+    "coaching-methodologies": {
+      "keywords": ["motivational interviewing", "MI", "SMART goals", "behavioral change", "habit"],
+      "solves": [
+        "Apply motivational interviewing techniques",
+        "Structure SMART goals",
+        "Guide behavioral change conversations",
+        "Reinforce positive habits"
+      ],
+      "reference_file": "references/coaching-methodologies.md",
+      "token_cost": 220
+    },
+    "conversation-state": {
+      "keywords": ["state", "context", "multi-turn", "history", "session", "memory"],
+      "solves": [
+        "Manage multi-turn conversation state",
+        "Track sentiment over time",
+        "Persist coaching session context",
+        "Handle context window limits"
+      ],
+      "reference_file": "references/conversation-state.md",
+      "token_cost": 180
+    },
+    "system-prompt-template": {
+      "keywords": ["prompt", "system prompt", "persona", "coaching persona", "template"],
+      "solves": [
+        "Create coaching persona prompt",
+        "Define AI coach behavior boundaries",
+        "Configure response style"
+      ],
+      "template_file": "templates/coaching-system-prompt.md",
+      "token_cost": 300
+    },
+    "state-schema": {
+      "keywords": ["schema", "state schema", "conversation schema", "data model"],
+      "solves": [
+        "Define conversation state structure",
+        "Model coaching session data",
+        "Track commitments and action items"
+      ],
+      "template_file": "templates/conversation-state-schema.json",
+      "token_cost": 150
+    },
+    "implementation-checklist": {
+      "keywords": ["checklist", "implementation", "validation", "qa", "review"],
+      "solves": [
+        "Validate coaching implementation",
+        "Ensure safety coverage",
+        "Review before production"
+      ],
+      "checklist_file": "checklists/coaching-implementation-checklist.md",
+      "token_cost": 120
+    }
+  },
+
+  "triggers": {
+    "high_confidence": [
+      "coaching.*conversation",
+      "health.*coach.*ai",
+      "member.*chat.*response",
+      "empathetic.*response",
+      "coaching.*safety"
+    ],
+    "medium_confidence": [
+      "health.*conversation",
+      "supportive.*message",
+      "member.*engagement.*ai"
+    ]
+  },
+
+  "integrates_with": [
+    "rag-retrieval",
+    "llm-evaluation",
+    "llm-streaming",
+    "hipaa-compliance-checker",
+    "function-calling"
+  ],
+
+  "progressive_loading": {
+    "tier_1_discovery": {
+      "file": "capabilities.json",
+      "tokens": 100,
+      "use_when": "Initial task analysis for coaching features"
+    },
+    "tier_2_overview": {
+      "file": "SKILL.md",
+      "tokens": 450,
+      "use_when": "Need coaching conversation patterns overview"
+    },
+    "tier_3_specific": {
+      "files": ["references/safety-guardrails.md", "references/empathetic-responses.md"],
+      "tokens": 450,
+      "use_when": "Need detailed safety or empathy patterns"
+    },
+    "tier_4_generate": {
+      "files": ["templates/coaching-system-prompt.md", "templates/conversation-state-schema.json"],
+      "tokens": 450,
+      "use_when": "Ready to implement coaching conversation system"
+    }
+  }
+}

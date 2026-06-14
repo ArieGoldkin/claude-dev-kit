@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "stitch": {
+      "command": "node",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/mcp/dist/stitch-server.js"
+      ]
+    }
+  }
+}

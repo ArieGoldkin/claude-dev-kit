@@ -1,0 +1,1 @@
+../../../../../shared/hooks-infra/src/hooks/pretool/read-cache.ts

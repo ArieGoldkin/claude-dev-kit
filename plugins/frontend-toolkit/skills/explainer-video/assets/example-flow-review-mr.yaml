@@ -1,0 +1,84 @@
+# Worked example: /etk:review-mr 8-phase pipeline as an explainer video
+# Pattern: flow-pipeline
+# Render with: npx remotion render ReviewMrPipeline out/review-mr-pipeline.mp4
+
+title: "/etk:review-mr — 8-Phase Pipeline"
+subtitle: "The generic review plugin that knows your project's rules"
+duration_seconds: 90
+fps: 30
+
+phases:
+  - id: phase_0
+    name: "Phase 0: Mode Policy"
+    description: "Detect MR metadata, pick summary / standard / deep mode"
+    duration_frames: 240        # 8s
+    visual_style: panel
+    accent_color: "#79c0ff"
+
+  - id: phase_1
+    name: "Phase 1: MR + Ticket Fetch"
+    description: "Pull MR title, diff, CI status, AND the linked Jira/Linear ticket — load-bearing input for Agent #10"
+    duration_frames: 360        # 12s — emphasize ticket fetch
+    visual_style: terminal
+    accent_color: "#a371f7"
+
+  - id: phase_2
+    name: "Phase 2: Auto-fix Formatting"
+    description: "Run prettier/biome/black on the diff before review work begins"
+    duration_frames: 180        # 6s
+    visual_style: panel
+
+  - id: phase_3
+    name: "Phase 3: Quality Grep Checks"
+    description: "Mechanical pre-filters: lint, typecheck, tests, sensitive-data grep, lambda engine-in-handler grep, table-name singular grep"
+    duration_frames: 300        # 10s
+    visual_style: code
+    accent_color: "#56d364"
+
+  - id: phase_4
+    name: "Phase 4: Mode Dispatch"
+    description: "Branch on Phase 0 mode; standard/deep proceed to fan-out"
+    duration_frames: 180        # 6s
+    visual_style: diagram
+
+  - id: phase_5
+    name: "Phase 5: Agent Fan-out (★)"
+    description: "10 agents dispatched in parallel — Code Quality, Security, DB, Testing, Frontend, Lambda, Coaching, HIPAA, Docs, AND Agent #10 Business Context Reviewer (loads .claude/business-invariants.md)"
+    duration_frames: 540        # 18s — biggest moment, agent fan-out is the centerpiece
+    visual_style: diagram
+    accent_color: "#a371f7"
+
+  - id: phase_6
+    name: "Phase 6: Synthesis"
+    description: "Dedupe overlapping findings, apply FP filters, normalize severity, sort by blocking + confidence; bundling rule for shared root causes"
+    duration_frames: 270        # 9s
+    visual_style: panel
+    accent_color: "#f0b049"
+
+  - id: phase_7
+    name: "Phase 7: Artifact Write"
+    description: "Hard-exit without posting; write .claude/reviews/mr-${N}-findings.{yaml,md}; user posts via /etk:post-mr-comments"
+    duration_frames: 330        # 11s
+    visual_style: code
+    accent_color: "#3fb950"
+
+# Total: 240+360+180+300+180+540+270+330 = 2400 frames @ 30fps = 80s
+# (90s duration_seconds gives 10s of title/credits buffer)
+
+narration_script:
+  - phase_id: phase_0
+    text: "The pipeline starts by reading the merge request's metadata and choosing a mode. Summary, standard, or deep — each does progressively more work."
+  - phase_id: phase_1
+    text: "Phase 1 fetches the diff and — critically — the linked Jira ticket. The ticket is load-bearing context for Agent #10 later."
+  - phase_id: phase_2
+    text: "Auto-fix formatting runs the project's formatter on the diff so trivial whitespace findings don't pollute the review."
+  - phase_id: phase_3
+    text: "Phase 3 is mechanical: lint, typecheck, tests, and three custom greps that are direct enforcers of business invariants."
+  - phase_id: phase_4
+    text: "Phase 4 dispatches based on mode. Summary skips agents; standard and deep proceed to the parallel fan-out."
+  - phase_id: phase_5
+    text: "Phase 5 is the centerpiece: ten specialized agents dispatched in parallel, each with read-only access. Agent number ten — the Business Context Reviewer — loads the project's .claude/business-invariants.md and cites violations by rule ID."
+  - phase_id: phase_6
+    text: "Phase 6 synthesizes the ten agents' findings: deduplication, false-positive filters, severity normalization, and bundling of shared root causes."
+  - phase_id: phase_7
+    text: "Phase 7 writes structured artifacts to .claude/reviews/ and exits without posting. The user inspects the YAML, then posts via /etk:post-mr-comments. Artifact-first, opt-in post."

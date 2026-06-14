@@ -1,0 +1,80 @@
+# MCP config (root is machine-specific; plugin .mcp.json files are tracked)
+/.mcp.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.sublime-*
+
+# Node.js
+node_modules/
+
+# Logs
+*.log
+/tmp/
+
+# Lock files (runtime)
+*.lock
+
+# Test artifacts
+coverage/
+.nyc_output/
+junit.xml
+**/hooks/junit.xml
+*.tsbuildinfo
+
+# Build artifacts
+dist/
+build/
+
+# Local development
+.env
+.env.local
+.env.*.local
+
+# Playgrounds are tracked in git (guideline documentation)
+
+# Session state
+.claude/context/
+.claude/continuity/
+.claude/coordination/
+.claude/feedback/
+.claude/research/
+**/hooks/.claude/
+
+# Machine-specific local settings (permissions, hardcoded absolute paths)
+.claude/settings.local.json
+
+# /develop pipeline state (ephemeral, per-session)
+.develop/
+
+# Explainer video render outputs (large, regenerable, not diff-able)
+docs/artifacts/explainer-video-*/*.mp4
+docs/artifacts/explainer-video-*/*.mp3
+docs/artifacts/explainer-video-*/*.wav
+
+# NotebookLM multimedia outputs — regenerable from each notebook's
+# briefing-doc.md / *-summary.md in <15 min. Keep the markdown spec,
+# drop the heavy outputs. Pairs with docs cleanup policy rule P3.
+docs/artifacts/notebooklm-*/*.mp3
+docs/artifacts/notebooklm-*/*.mp4
+docs/artifacts/notebooklm-*/*.pdf
+docs/artifacts/notebooklm-*/*.pptx
+docs/artifacts/notebooklm-*/*.png
+
+# tools/ — internal tooling we develop and improve over time (e.g.,
+# explainer-videos Remotion app for generating block-based explainer videos
+# from a shared catalog of building blocks). Source is tracked. Each tool's
+# own .gitignore handles per-tool ignores (node_modules, out/, etc.).
+.claude/reviews/
+
+# Explainer-video rendered output (4.4MB, regenerable via Remotion render).
+# Narration .wav files under public/ are kept — they're source inputs.
+tools/explainer-videos/public/*.mp4

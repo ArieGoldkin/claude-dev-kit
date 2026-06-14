@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# rtk-check — Check RTK (Rust Token Killer) installation and status
+#
+# Usage: rtk-check [--install]
+#
+# Verifies RTK is installed, shows version, and optionally installs it.
+# Available as a bare command from Claude Code's Bash tool (CC 2.1.91+).
+
+set -euo pipefail
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+INSTALL=false
+if [[ "${1:-}" == "--install" ]]; then
+  INSTALL=true
+fi
+
+echo -e "${CYAN}RTK Status Check${NC}"
+echo ""
+
+# Check if RTK is installed
+if command -v rtk &>/dev/null; then
+  version=$(rtk --version 2>/dev/null || echo "unknown")
+  echo -e "  ${GREEN}INSTALLED${NC} — rtk $version"
+  echo -e "  Path: $(which rtk)"
+
+  # Check if telemetry is disabled
+  if rtk config get telemetry 2>/dev/null | grep -q "false"; then
+    echo -e "  Telemetry: ${GREEN}disabled${NC}"
+  else
+    echo -e "  Telemetry: ${YELLOW}enabled${NC} — run 'rtk config set telemetry false' to disable"
+  fi
+
+  echo ""
+  echo -e "  ${GREEN}RTK is ready.${NC} Tool output compression (~88% token savings) is active."
+else
+  echo -e "  ${RED}NOT INSTALLED${NC}"
+  echo ""
+
+  if [[ "$INSTALL" == "true" ]]; then
+    echo "Installing RTK..."
+    if [[ "$(uname)" == "Darwin" ]]; then
+      if command -v brew &>/dev/null; then
+        brew install rtk
+        rtk config set telemetry false
+        echo -e "\n  ${GREEN}RTK installed and configured.${NC}"
+      else
+        echo -e "  ${RED}Homebrew not found.${NC} Install manually: https://github.com/anthropics/rtk"
+        exit 1
+      fi
+    elif [[ "$(uname)" == "Linux" ]]; then
+      echo "  Download from: https://github.com/anthropics/rtk/releases"
+      echo "  Or use: curl -fsSL https://rtk.sh | sh"
+      exit 1
+    fi
+  else
+    echo "  To install: rtk-check --install"
+    echo "  Or manually: brew install rtk (macOS)"
+    echo ""
+    echo "  RTK provides ~88% reduction in tool output tokens."
+    echo "  Run /setup-rtk in Claude Code for guided setup."
+  fi
+fi

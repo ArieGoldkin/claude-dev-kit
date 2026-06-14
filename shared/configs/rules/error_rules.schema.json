@@ -1,0 +1,63 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/ArieGoldkin/claude-dev-kit/shared/configs/rules/error_rules.schema.json",
+  "title": "Error Rules Configuration",
+  "description": "Schema for the error warner hook configuration",
+  "type": "object",
+  "required": ["rules"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "JSON Schema reference for IDE validation"
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable description of this rules file"
+    },
+    "version": {
+      "type": "string",
+      "description": "Version of the rules configuration",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "rules": {
+      "type": "array",
+      "description": "Array of error pattern rules",
+      "items": {
+        "$ref": "#/definitions/ErrorRule"
+      },
+      "minItems": 1
+    }
+  },
+  "definitions": {
+    "ErrorRule": {
+      "type": "object",
+      "description": "A single error pattern rule",
+      "required": ["id", "pattern", "message"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the rule (kebab-case recommended)",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "pattern": {
+          "type": "string",
+          "description": "Pattern to match against command output (substring match)",
+          "minLength": 1
+        },
+        "message": {
+          "type": "string",
+          "description": "Helpful message to display when pattern matches",
+          "minLength": 1
+        },
+        "severity": {
+          "type": "string",
+          "description": "Severity level of the error",
+          "enum": ["error", "warning", "info"],
+          "default": "info"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

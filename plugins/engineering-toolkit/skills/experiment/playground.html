@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>/experiment Loop Playground</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#0d1117;color:#c9d1d9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;line-height:1.6}
+  h1{font-size:1.6rem;font-weight:600}
+  h2{font-size:1.2rem;font-weight:600;margin-bottom:.5rem}
+  h3{font-size:1rem;font-weight:600;color:#58a6ff}
+  a{color:#58a6ff;text-decoration:none}
+  a:hover{text-decoration:underline}
+  .header{padding:1rem 2rem;border-bottom:1px solid #30363d;display:flex;align-items:center;gap:1rem}
+  .header span{color:#8b949e;font-size:.85rem}
+  .tabs{display:flex;gap:0;border-bottom:1px solid #30363d;padding:0 2rem;background:#161b22}
+  .tab{padding:.6rem 1.2rem;cursor:pointer;color:#8b949e;border-bottom:2px solid transparent;font-size:.85rem;transition:color .15s}
+  .tab:hover{color:#c9d1d9}
+  .tab.active{color:#58a6ff;border-bottom-color:#58a6ff}
+  .content{padding:1.5rem 2rem;max-width:1100px;margin:0 auto}
+  .panel{display:none}
+  .panel.active{display:block}
+  .card{background:#161b22;border:1px solid #30363d;border-radius:6px;padding:1rem;margin-bottom:.75rem}
+  .phase-flow{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin:1rem 0}
+  .phase-node{background:#161b22;border:1px solid #30363d;border-radius:6px;padding:.4rem .8rem;font-size:.8rem;cursor:default;text-align:center;min-width:90px}
+  .phase-node.green{border-color:#3fb950;color:#3fb950}
+  .phase-node.orange{border-color:#d29922;color:#d29922}
+  .phase-node.purple{border-color:#bc8cff;color:#bc8cff}
+  .phase-node.red{border-color:#f85149;color:#f85149}
+  .arrow{color:#484f58;font-size:.9rem}
+  .diamond{background:#161b22;border:2px solid #d29922;transform:rotate(45deg);width:80px;height:80px;display:flex;align-items:center;justify-content:center;margin:1rem auto;font-size:.75rem}
+  .diamond-text{transform:rotate(-45deg);color:#d29922;font-weight:600;text-align:center;line-height:1.2}
+  details{margin-bottom:.5rem}
+  details summary{cursor:pointer;padding:.5rem;border-radius:4px;font-weight:500;font-size:.9rem;list-style:none}
+  details summary::-webkit-details-marker{display:none}
+  details summary::before{content:'+ ';color:#58a6ff;font-weight:bold}
+  details[open] summary::before{content:'- '}
+  details .detail-body{padding:.75rem 1rem;font-size:.85rem;border-left:2px solid #30363d;margin:.5rem 0 .5rem 1rem}
+  .detail-body p{margin-bottom:.4rem}
+  table{width:100%;border-collapse:collapse;font-size:.85rem;margin:.75rem 0}
+  th,td{text-align:left;padding:.45rem .6rem;border-bottom:1px solid #30363d}
+  th{color:#8b949e;font-weight:500}
+  td code{background:#262c36;padding:.1rem .3rem;border-radius:3px;font-size:.8rem;color:#e6edf3}
+  pre{background:#161b22;border:1px solid #30363d;border-radius:6px;padding:1rem;overflow-x:auto;font-size:.78rem;line-height:1.5;margin:.75rem 0}
+  .st-phase{color:#58a6ff}
+  .st-status{color:#d29922}
+  .st-pass{color:#3fb950}
+  .st-fail{color:#f85149}
+  .st-info{color:#8b949e}
+  .st-new{color:#bc8cff}
+  .feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:.75rem;margin:1rem 0}
+  .feature-card{background:#161b22;border:1px solid #30363d;border-radius:6px;padding:1rem}
+  .feature-card h3{margin-bottom:.4rem}
+  .feature-card p{font-size:.83rem;color:#8b949e;margin-bottom:.5rem}
+  .badge{display:inline-block;font-size:.7rem;padding:.15rem .5rem;border-radius:10px;font-weight:500}
+  .badge-metric{background:#0d3820;color:#3fb950}
+  .badge-dir{background:#1a1f35;color:#58a6ff}
+  .label{display:inline-block;font-size:.7rem;padding:.1rem .4rem;border-radius:3px;font-weight:600;vertical-align:middle}
+  .label-keep{background:#0d3820;color:#3fb950}
+  .label-discard{background:#3d1519;color:#f85149}
+  .label-crash{background:#3d1519;color:#f85149}
+  .label-baseline{background:#1a1f35;color:#58a6ff}
+  .decision-row{display:flex;gap:1rem;margin:1rem 0;flex-wrap:wrap}
+  .decision-box{flex:1;min-width:200px;border-radius:6px;padding:.75rem 1rem;font-size:.85rem}
+  .decision-box.keep{background:#0d3820;border:1px solid #3fb950}
+  .decision-box.discard{background:#3d1519;border:1px solid #f85149}
+  .guard-check{display:flex;align-items:center;gap:.5rem;padding:.35rem 0;font-size:.85rem}
+  .guard-icon{width:18px;height:18px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:bold;flex-shrink:0}
+  .guard-on{background:#0d3820;color:#3fb950;border:1px solid #3fb950}
+  .git-step{display:flex;align-items:center;gap:.75rem;padding:.5rem 0;font-size:.85rem}
+  .git-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+  .git-dot.commit{background:#58a6ff}
+  .git-dot.eval{background:#d29922}
+  .git-dot.keep{background:#3fb950}
+  .git-dot.reset{background:#f85149}
+  .git-line{width:2px;height:20px;background:#30363d;margin-left:5px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>/experiment Loop</h1>
+  <span>Autonomous metric-driven iteration -- modify, measure, keep or discard, repeat</span>
+</div>
+
+<div class="tabs" id="tabs">
+  <div class="tab active" data-tab="overview">Loop Overview</div>
+  <div class="tab" data-tab="usecases">Use Cases</div>
+  <div class="tab" data-tab="config">Configuration</div>
+  <div class="tab" data-tab="example">Example Run</div>
+  <div class="tab" data-tab="safety">Safety</div>
+</div>
+
+<div class="content">
+
+<!-- Tab 1: Loop Overview -->
+<div class="panel active" id="overview">
+  <h2>The 8-Phase Experiment Loop</h2>
+  <p style="font-size:.85rem;color:#8b949e;margin-bottom:1rem">Each iteration modifies code, measures a metric, and keeps or discards the change. Git commits before every evaluation ensure clean rollback on regression.</p>
+
+  <div class="phase-flow">
+    <div class="phase-node purple">1. Setup</div>
+    <span class="arrow">&rarr;</span>
+    <div class="phase-node">2. Baseline</div>
+    <span class="arrow">&rarr;</span>
+    <div class="phase-node">3. Hypothesize</div>
+    <span class="arrow">&rarr;</span>
+    <div class="phase-node">4. Modify</div>
+    <span class="arrow">&rarr;</span>
+    <div class="phase-node orange">5. Evaluate</div>
+    <span class="arrow">&rarr;</span>
+    <div class="phase-node orange">6. Decide</div>
+    <span class="arrow">&rarr;</span>
+    <div class="phase-node">7. Log</div>
+    <span class="arrow">&rarr;</span>
+    <div class="phase-node green">8. Iterate?</div>
+  </div>
+
+  <div class="card" style="margin-top:1rem">
+    <h3>Decision Diamond: Phase 6 (Decide)</h3>
+    <div class="decision-row">
+      <div class="decision-box keep">
+        <strong>Metric improved?</strong><br>
+        Keep the commit. Update best value.<br>
+        Status: <span class="label label-keep">keep</span>
+      </div>
+      <div class="decision-box discard">
+        <strong>Regressed, crashed, or timed out?</strong><br>
+        <code>git reset --hard HEAD~1</code><br>
+        Status: <span class="label label-discard">discard</span> / <span class="label label-crash">crash</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Budget Check: Phase 8 (Iterate?)</h3>
+    <table>
+      <tr><th>Condition</th><th>Action</th></tr>
+      <tr><td>Goal reached</td><td style="color:#3fb950">Stop -- generate final report</td></tr>
+      <tr><td>Iteration budget exhausted</td><td style="color:#f85149">Stop -- generate final report</td></tr>
+      <tr><td>Time budget exhausted</td><td style="color:#f85149">Stop -- generate final report</td></tr>
+      <tr><td>Stuck (6 consecutive discards)</td><td style="color:#f85149">Stop -- generate final report</td></tr>
+      <tr><td>Budget remaining</td><td style="color:#58a6ff">Return to Phase 3 (Hypothesize)</td></tr>
+    </table>
+  </div>
+
+  <details>
+    <summary>Phase Details</summary>
+    <div class="detail-body">
+      <p><strong>1. Setup</strong> -- Parse args or .experiment/config.yaml, validate target exists in git repo, dry-run metric command, create results directory.</p>
+      <p><strong>2. Baseline</strong> -- Run metric command on unmodified code, record iteration 0 as baseline.</p>
+      <p><strong>3. Hypothesize</strong> -- Read target code + prior results, formulate a specific hypothesis before modifying anything.</p>
+      <p><strong>4. Modify</strong> -- Apply one atomic change within scope, commit with experiment message.</p>
+      <p><strong>5. Evaluate</strong> -- Run metric command, parse numeric result, compare to current best.</p>
+      <p><strong>6. Decide</strong> -- Keep improvement or git-reset regression. Simplicity tiebreaker: &lt;0.1% gain with &gt;20 lines changed = discard.</p>
+      <p><strong>7. Log</strong> -- Append row to .experiment/results/{name}.tsv with all fields.</p>
+      <p><strong>8. Iterate?</strong> -- Check stop conditions (goal, budget, time, stuck), loop or generate report.</p>
+    </div>
+  </details>
+</div>
+
+<!-- Tab 2: Use Cases -->
+<div class="panel" id="usecases">
+  <h2>Common Use Cases</h2>
+  <div class="feature-grid">
+
+    <div class="feature-card">
+      <h3>API Latency</h3>
+      <p>Reduce mean response time below a target threshold.</p>
+      <p><span class="badge badge-metric">metric: mean latency</span> <span class="badge badge-dir">minimize</span></p>
+      <pre style="font-size:.72rem;padding:.6rem">
+/experiment src/api/handler.ts \
+  --metric "npm run bench -- --json \
+    | jq '.results[0].mean'" \
+  --minimize --goal 100 --unit ms</pre>
+    </div>
+
+    <div class="feature-card">
+      <h3>Test Coverage</h3>
+      <p>Push line coverage toward a target percentage.</p>
+      <p><span class="badge badge-metric">metric: line coverage %</span> <span class="badge badge-dir">maximize</span></p>
+      <pre style="font-size:.72rem;padding:.6rem">
+/experiment src/ \
+  --metric "npm test -- --coverage \
+    | grep Lines | awk '{print $2}'" \
+  --maximize --goal 90 --unit %</pre>
+    </div>
+
+    <div class="feature-card">
+      <h3>Bundle Size</h3>
+      <p>Minimize production bundle output size.</p>
+      <p><span class="badge badge-metric">metric: bundle bytes</span> <span class="badge badge-dir">minimize</span></p>
+      <pre style="font-size:.72rem;padding:.6rem">
+/experiment src/ \
+  --metric "npm run build && \
+    stat -f%z dist/bundle.js" \
+  --minimize --iterations 15 \
+  --unit bytes</pre>
+    </div>
+
+    <div class="feature-card">
+      <h3>ML Training Loss</h3>
+      <p>Tune hyperparameters to reduce training loss.</p>
+      <p><span class="badge badge-metric">metric: final loss</span> <span class="badge badge-dir">minimize</span></p>
+      <pre style="font-size:.72rem;padding:.6rem">
+/experiment train/config.py \
+  --metric "python train.py \
+    | tail -1 | awk '{print $NF}'" \
+  --minimize --goal 0.15 \
+  --unit loss --iterations 20</pre>
+    </div>
+
+    <div class="feature-card">
+      <h3>Lighthouse Score</h3>
+      <p>Improve web performance to reach a target score.</p>
+      <p><span class="badge badge-metric">metric: perf score</span> <span class="badge badge-dir">maximize</span></p>
+      <pre style="font-size:.72rem;padding:.6rem">
+/experiment src/pages/ \
+  --metric "npx lighthouse \
+    http://localhost:3000 \
+    --output json | jq \
+    '.categories.performance.score
+     * 100'" \
+  --maximize --goal 95</pre>
+    </div>
+
+  </div>
+</div>
+
+<!-- Tab 3: Configuration -->
+<div class="panel" id="config">
+  <h2>Configuration Reference</h2>
+  <p style="font-size:.85rem;color:#8b949e;margin-bottom:1rem">Configure via inline flags or <code>.experiment/config.yaml</code>. Inline args take precedence over file values.</p>
+
+  <div class="card">
+    <h3>Example .experiment/config.yaml</h3>
+    <pre>
+<span class="st-phase"># Experiment identity</span>
+<span class="st-pass">name</span>: reduce-api-latency
+<span class="st-pass">description</span>: Optimize the API handler to reduce mean response time
+<span class="st-pass">target</span>: src/api/handler.ts
+
+<span class="st-phase"># Files the agent must not modify</span>
+<span class="st-pass">readonly</span>:
+  - src/api/types.ts
+  - tests/
+
+<span class="st-phase"># What to measure and which direction is better</span>
+<span class="st-pass">metric</span>:
+  <span class="st-info">command</span>: "npm run bench -- --json"
+  <span class="st-info">extract</span>: "jq '.results[0].mean'"
+  <span class="st-info">direction</span>: minimize
+  <span class="st-info">unit</span>: ms
+  <span class="st-info">goal</span>: 100
+
+<span class="st-phase"># Iteration and time limits</span>
+<span class="st-pass">budget</span>:
+  <span class="st-info">max_iterations</span>: 15
+  <span class="st-info">max_minutes</span>: 60
+  <span class="st-info">iteration_timeout_minutes</span>: 5
+  <span class="st-info">checkpoint_every</span>: 5
+
+<span class="st-phase"># Guide the agent's approach</span>
+<span class="st-pass">hints</span>:
+  - "Consider connection pooling optimizations"
+  - "The database query in lines 45-60 may be N+1"
+  - "Do not change the public API signature"
+    </pre>
+  </div>
+
+  <div class="card">
+    <h3>Field Reference</h3>
+    <table>
+      <tr><th>Field</th><th>Type</th><th>Default</th><th>Description</th></tr>
+      <tr><td><code>name</code></td><td>string</td><td>auto</td><td>Experiment name for results tracking</td></tr>
+      <tr><td><code>description</code></td><td>string</td><td>--</td><td>Human-readable description</td></tr>
+      <tr><td><code>target</code></td><td>path</td><td>required</td><td>File or directory to optimize</td></tr>
+      <tr><td><code>readonly</code></td><td>path[]</td><td>[]</td><td>Files/dirs the agent must not modify</td></tr>
+      <tr><td><code>metric.command</code></td><td>string</td><td>required</td><td>Shell command that produces the metric</td></tr>
+      <tr><td><code>metric.extract</code></td><td>string</td><td>last line</td><td>Post-process command to extract numeric value</td></tr>
+      <tr><td><code>metric.direction</code></td><td>enum</td><td>required</td><td><code>minimize</code> or <code>maximize</code></td></tr>
+      <tr><td><code>metric.unit</code></td><td>string</td><td>--</td><td>Human-readable unit label (ms, KB, %, bpb)</td></tr>
+      <tr><td><code>metric.goal</code></td><td>number</td><td>none</td><td>Stop when metric reaches this value</td></tr>
+      <tr><td><code>budget.max_iterations</code></td><td>integer</td><td>10</td><td>Maximum iterations (cap: 100)</td></tr>
+      <tr><td><code>budget.max_minutes</code></td><td>integer</td><td>60</td><td>Maximum wall-clock minutes (cap: 480)</td></tr>
+      <tr><td><code>budget.iteration_timeout_minutes</code></td><td>integer</td><td>none</td><td>Kill metric command after N minutes</td></tr>
+      <tr><td><code>budget.checkpoint_every</code></td><td>integer</td><td>none</td><td>Pause for human review every N iterations</td></tr>
+      <tr><td><code>hints</code></td><td>string[]</td><td>[]</td><td>Guidance text to steer the agent's approach</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>Inline Flags</h3>
+    <table>
+      <tr><th>Flag</th><th>Equivalent config field</th></tr>
+      <tr><td><code>--metric "{command}"</code></td><td>metric.command</td></tr>
+      <tr><td><code>--extract "{command}"</code></td><td>metric.extract</td></tr>
+      <tr><td><code>--minimize</code> / <code>--maximize</code></td><td>metric.direction</td></tr>
+      <tr><td><code>--goal {value}</code></td><td>metric.goal</td></tr>
+      <tr><td><code>--unit {label}</code></td><td>metric.unit</td></tr>
+      <tr><td><code>--iterations {N}</code></td><td>budget.max_iterations</td></tr>
+      <tr><td><code>--minutes {N}</code></td><td>budget.max_minutes</td></tr>
+      <tr><td><code>--checkpoint {N}</code></td><td>budget.checkpoint_every</td></tr>
+      <tr><td><code>--readonly {paths}</code></td><td>readonly</td></tr>
+      <tr><td><code>--name {name}</code></td><td>name</td></tr>
+      <tr><td><code>--hint "{text}"</code></td><td>hints</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- Tab 4: Example Run -->
+<div class="panel" id="example">
+  <h2>Simulated /experiment Run</h2>
+  <p style="font-size:.85rem;color:#8b949e;margin-bottom:1rem">Full output of a 6-iteration experiment reducing API latency from 187ms to 98ms (goal: 100ms).</p>
+
+  <pre>
+<span class="st-phase">--- Phase 1: Setup ---</span>
+Target: src/api/handler.ts
+Metric: npm run bench -- --json | jq '.results[0].mean'
+Direction: minimize   Unit: ms   Goal: 100
+Budget: 10 iterations, 60 minutes
+Readonly: src/api/types.ts, tests/
+Dry-run metric command ... <span class="st-pass">OK (returned 187.3)</span>
+Git working tree clean.
+<span class="st-status">[EXPERIMENT_START] name=reduce-api-latency target=src/api/handler.ts direction=min budget_iterations=10</span>
+
+<span class="st-phase">--- Phase 2: Baseline ---</span>
+Running metric command ...
+<span class="st-pass">Baseline: 187.3 ms</span>
+Goal: 100 ms (gap: 87.3 ms)
+<span class="st-status">[EXPERIMENT_BASELINE] metric=187.3 unit=ms goal=100</span>
+
+<span class="st-phase">--- Iteration 1 ---</span>
+<span class="st-info">Hypothesis: If I memoize the expensive config parsing in getConfig(), latency should decrease because it is called on every request but the config rarely changes.</span>
+Modifying src/api/handler.ts ... committed (b2c3d4e)
+Evaluating ... 142.1 ms
+<span class="st-pass">Iteration 1: 142.1 ms (-45.2 | keep) - memoized config parsing</span>
+<span class="st-status">[EXPERIMENT_ITERATION_DONE] iteration=1 metric=142.1 delta=-45.2 status=keep description=memoized config parsing</span>
+
+<span class="st-phase">--- Iteration 2 ---</span>
+<span class="st-info">Hypothesis: If I convert the sequential DB queries to Promise.all(), latency should decrease because 3 independent queries currently run in series.</span>
+Modifying src/api/handler.ts ... committed (c3d4e5f)
+Evaluating ... 128.4 ms
+<span class="st-pass">Iteration 2: 128.4 ms (-13.7 | keep) - parallelized DB queries</span>
+<span class="st-status">[EXPERIMENT_ITERATION_DONE] iteration=2 metric=128.4 delta=-13.7 status=keep description=parallelized DB queries</span>
+
+<span class="st-phase">--- Iteration 3 ---</span>
+<span class="st-info">Hypothesis: If I switch from JSON.parse to a streaming parser, latency should decrease for large response payloads.</span>
+Modifying src/api/handler.ts ... committed (d4e5f6g)
+Evaluating ... 131.2 ms
+<span class="st-fail">Iteration 3: 131.2 ms (+2.8 | discard) - streaming parser added overhead</span>
+git reset --hard HEAD~1
+<span class="st-status">[EXPERIMENT_ITERATION_DONE] iteration=3 metric=131.2 delta=+2.8 status=discard description=streaming parser added overhead</span>
+
+<span class="st-phase">--- Iteration 4 ---</span>
+<span class="st-info">Hypothesis: If I add connection pooling for the DB client, latency should decrease because connection setup is ~15ms per request.</span>
+Modifying src/api/handler.ts ... committed (e5f6g7h)
+Evaluating ... <span class="st-fail">ERROR: metric command exited with code 1</span>
+<span class="st-fail">Iteration 4: crash - syntax error in pool initialization</span>
+git reset --hard HEAD~1
+<span class="st-status">[EXPERIMENT_ITERATION_DONE] iteration=4 metric=- delta=- status=crash description=syntax error in pool initialization</span>
+
+<span class="st-phase">--- Iteration 5 ---</span>
+<span class="st-info">Hypothesis: Retry connection pooling with correct import syntax. The pg Pool constructor requires {max, idleTimeoutMillis} options.</span>
+Modifying src/api/handler.ts ... committed (f6g7h8i)
+Evaluating ... 112.7 ms
+<span class="st-pass">Iteration 5: 112.7 ms (-15.7 | keep) - connection pooling (fixed)</span>
+<span class="st-status">[EXPERIMENT_ITERATION_DONE] iteration=5 metric=112.7 delta=-15.7 status=keep description=connection pooling (fixed)</span>
+
+<span class="st-phase">--- Iteration 6 ---</span>
+<span class="st-info">Hypothesis: If I add a Redis cache for the most frequent query, latency should drop below goal since 60% of requests hit the same data.</span>
+Modifying src/api/handler.ts ... committed (g7h8i9j)
+Evaluating ... 98.1 ms
+<span class="st-pass">Iteration 6: 98.1 ms (-14.6 | keep) - Redis cache for hot query</span>
+<span class="st-pass">Goal reached! 98.1 ms &lt;= 100 ms</span>
+<span class="st-status">[EXPERIMENT_ITERATION_DONE] iteration=6 metric=98.1 delta=-14.6 status=keep description=Redis cache for hot query</span>
+<span class="st-status">[EXPERIMENT_STOP] reason=goal_reached</span>
+
+<span class="st-phase">--- Final Report ---</span>
+
+| Metric    | Baseline | Best   | Delta    | Goal  |
+|-----------|----------|--------|----------|-------|
+| latency   | 187.3 ms | 98.1 ms | -89.2 ms (-47.6%) | 100 ms |
+
+Iterations: 6 (4 kept, 1 discarded, 1 crashed)
+Budget used: 6/10 iterations
+
+<span class="st-pass">Winning changes (cumulative):</span>
+  1. Memoized config parsing (-45.2 ms)
+  2. Parallelized DB queries (-13.7 ms)
+  3. Connection pooling (-15.7 ms)
+  4. Redis cache for hot query (-14.6 ms)
+
+<span class="st-fail">Discarded:</span>
+  3. Streaming parser (+2.8 ms overhead)
+  4. Connection pooling (syntax error, crash)
+
+<span class="st-status">[EXPERIMENT_SUMMARY] result=goal_reached iterations=6 kept=4 discarded=1 baseline=187.3 best=98.1 delta=-89.2</span>
+  </pre>
+</div>
+
+<!-- Tab 5: Safety -->
+<div class="panel" id="safety">
+  <h2>Safety Guardrails</h2>
+
+  <div class="card">
+    <h3>Git Rollback Visualization</h3>
+    <p style="font-size:.85rem;color:#8b949e;margin-bottom:.75rem">Every modification is committed before the metric runs. Regressions are rolled back to the previous commit.</p>
+
+    <div class="git-step"><div class="git-dot commit"></div> <strong>Commit</strong> -- experiment: iteration N - description</div>
+    <div class="git-line"></div>
+    <div class="git-step"><div class="git-dot eval"></div> <strong>Evaluate</strong> -- run metric command, parse result</div>
+    <div class="git-line"></div>
+    <div class="git-step"><div class="git-dot keep"></div> <span style="color:#3fb950"><strong>Improved?</strong> Keep commit, update best value</span></div>
+    <div class="git-step" style="margin-left:2rem;color:#8b949e">-- or --</div>
+    <div class="git-step"><div class="git-dot reset"></div> <span style="color:#f85149"><strong>Regressed?</strong> <code>git reset --hard HEAD~1</code> -- change never persisted</span></div>
+    <div class="git-line"></div>
+    <div class="git-step"><div class="git-dot commit"></div> <strong>Next iteration</strong> -- always starts from last known-good state</div>
+  </div>
+
+  <div class="card">
+    <h3>Guardrails Checklist</h3>
+    <div class="guard-check"><div class="guard-icon guard-on">+</div> <strong>Readonly enforcement</strong> -- <code>git diff --name-only</code> checked against readonly list; violations revert immediately</div>
+    <div class="guard-check"><div class="guard-icon guard-on">+</div> <strong>Correctness gate</strong> -- metric command crash or non-numeric output triggers automatic revert</div>
+    <div class="guard-check"><div class="guard-icon guard-on">+</div> <strong>Iteration budget</strong> -- max_iterations (default 10, cap 100) prevents runaway loops</div>
+    <div class="guard-check"><div class="guard-icon guard-on">+</div> <strong>Time budget</strong> -- max_minutes (default 60, cap 480) wall-clock limit</div>
+    <div class="guard-check"><div class="guard-icon guard-on">+</div> <strong>Stuck detection</strong> -- 5 consecutive discards triggers strategy reset; 6 consecutive stops</div>
+    <div class="guard-check"><div class="guard-icon guard-on">+</div> <strong>Human checkpoint</strong> -- optional pause every N iterations for review (checkpoint_every)</div>
+    <div class="guard-check"><div class="guard-icon guard-on">+</div> <strong>Scope containment</strong> -- only files within target path may be modified</div>
+    <div class="guard-check"><div class="guard-icon guard-on">+</div> <strong>Commit-before-evaluate</strong> -- every change committed before metric runs, ensuring clean revert</div>
+    <div class="guard-check"><div class="guard-icon guard-on">+</div> <strong>Clean git state</strong> -- stash uncommitted changes before starting; restore on completion</div>
+    <div class="guard-check"><div class="guard-icon guard-on">+</div> <strong>Simplicity tiebreaker</strong> -- &lt;0.1% gain with &gt;20 lines changed = discard</div>
+  </div>
+
+  <div class="card">
+    <h3>Cost Estimation</h3>
+    <p style="font-size:.85rem;color:#8b949e;margin-bottom:.5rem">Each iteration involves reading code, formulating a hypothesis, modifying files, and running the metric command. Approximate token and time costs per iteration:</p>
+    <table>
+      <tr><th>Scenario</th><th>Iterations</th><th>Est. Time</th><th>Est. Tokens (input+output)</th></tr>
+      <tr><td>Small file, fast metric</td><td>5-10</td><td>10-20 min</td><td>50K-100K</td></tr>
+      <tr><td>Medium codebase, test suite</td><td>10-15</td><td>30-60 min</td><td>150K-300K</td></tr>
+      <tr><td>Large codebase, slow benchmark</td><td>10-20</td><td>60-120 min</td><td>300K-600K</td></tr>
+      <tr><td>ML training loop</td><td>15-20</td><td>120-480 min</td><td>200K-400K</td></tr>
+    </table>
+    <p style="font-size:.8rem;color:#8b949e;margin-top:.5rem">Token estimates depend heavily on target file size and metric command output length. Use <code>--iterations</code> and <code>--minutes</code> to cap costs.</p>
+  </div>
+</div>
+
+</div>
+
+<script>
+document.getElementById('tabs').addEventListener('click', function(e) {
+  if (!e.target.classList.contains('tab')) return;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  e.target.classList.add('active');
+  document.getElementById(e.target.dataset.tab).classList.add('active');
+});
+</script>
+
+</body>
+</html>

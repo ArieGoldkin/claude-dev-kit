@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Review policy configuration for /review-mr command. Copy to .claude/policies/review-policy.json and customize.",
+  "confidence_threshold": 70,
+  "risk_to_mode_escalation": {
+    "standard_threshold": 4,
+    "deep_threshold": 7
+  },
+  "evidence_gate": {
+    "secrets_scan": "block",
+    "tests": "warn",
+    "lint": "warn",
+    "typecheck": "warn"
+  },
+  "output_preferences": {
+    "max_findings_per_agent": 20,
+    "sort_by_confidence": true,
+    "show_filtered_count": true
+  },
+  "skip_paths": [],
+  "nit_cap": 5,
+  "composite_score_weights": {
+    "quality_checks": 0.30,
+    "code_quality": 0.20,
+    "security": 0.25,
+    "testing": 0.15,
+    "architecture": 0.10
+  },
+  "grade_thresholds": {
+    "A": 90,
+    "B": 75,
+    "C": 60,
+    "D": 40
+  },
+  "commands": {
+    "format_frontend": "mise run biome-fix",
+    "format_backend": "mise run ruff-fix",
+    "lint_frontend": "mise run biome-check",
+    "lint_backend": "mise run ruff-check",
+    "test_frontend": "mise run test-frontend",
+    "secret_scan": "mise run secret-detection",
+    "typecheck_member": "cd frontend/member && npm run build",
+    "typecheck_coach": "cd frontend/coach && npm run build"
+  },
+  "vcs": {
+    "provider": "auto"
+  }
+}

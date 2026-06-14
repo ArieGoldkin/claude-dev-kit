@@ -1,0 +1,250 @@
+{
+  "templates": {
+    "lambda_execution_role": {
+      "description": "Least privilege policy for Lambda execution role",
+      "policy": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Sid": "CloudWatchLogs",
+            "Effect": "Allow",
+            "Action": [
+              "logs:CreateLogGroup",
+              "logs:CreateLogStream",
+              "logs:PutLogEvents"
+            ],
+            "Resource": "arn:aws:logs:us-east-1:238141764839:log-group:/aws/lambda/acme-*"
+          },
+          {
+            "Sid": "SecretsManagerRead",
+            "Effect": "Allow",
+            "Action": [
+              "secretsmanager:GetSecretValue"
+            ],
+            "Resource": "arn:aws:secretsmanager:us-east-1:238141764839:secret:acme/*"
+          },
+          {
+            "Sid": "VPCNetworkInterfaces",
+            "Effect": "Allow",
+            "Action": [
+              "ec2:CreateNetworkInterface",
+              "ec2:DescribeNetworkInterfaces",
+              "ec2:DeleteNetworkInterface"
+            ],
+            "Resource": "*",
+            "Condition": {
+              "StringEquals": {
+                "ec2:Vpc": "arn:aws:ec2:us-east-1:238141764839:vpc/vpc-acme"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "s3_read_only": {
+      "description": "Read-only access to acme S3 buckets",
+      "policy": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Sid": "S3ReadOnly",
+            "Effect": "Allow",
+            "Action": [
+              "s3:GetObject",
+              "s3:GetObjectVersion",
+              "s3:ListBucket"
+            ],
+            "Resource": [
+              "arn:aws:s3:::acme-data-dev",
+              "arn:aws:s3:::acme-data-dev/*"
+            ]
+          }
+        ]
+      }
+    },
+    "s3_read_write": {
+      "description": "Read-write access to acme S3 buckets",
+      "policy": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Sid": "S3ReadWrite",
+            "Effect": "Allow",
+            "Action": [
+              "s3:GetObject",
+              "s3:GetObjectVersion",
+              "s3:PutObject",
+              "s3:DeleteObject",
+              "s3:ListBucket"
+            ],
+            "Resource": [
+              "arn:aws:s3:::acme-data-dev",
+              "arn:aws:s3:::acme-data-dev/*"
+            ]
+          }
+        ]
+      }
+    },
+    "rds_describe_only": {
+      "description": "Describe-only access to acme RDS instances",
+      "policy": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Sid": "RDSDescribe",
+            "Effect": "Allow",
+            "Action": [
+              "rds:DescribeDBInstances",
+              "rds:DescribeDBClusters",
+              "rds:DescribeDBSnapshots"
+            ],
+            "Resource": "arn:aws:rds:us-east-1:238141764839:db:acme-*"
+          }
+        ]
+      }
+    },
+    "cloudwatch_read_only": {
+      "description": "Read-only access to CloudWatch logs and metrics",
+      "policy": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Sid": "CloudWatchLogsRead",
+            "Effect": "Allow",
+            "Action": [
+              "logs:DescribeLogGroups",
+              "logs:DescribeLogStreams",
+              "logs:GetLogEvents",
+              "logs:FilterLogEvents",
+              "logs:StartQuery",
+              "logs:GetQueryResults"
+            ],
+            "Resource": "arn:aws:logs:us-east-1:238141764839:log-group:/aws/lambda/acme-*"
+          },
+          {
+            "Sid": "CloudWatchMetricsRead",
+            "Effect": "Allow",
+            "Action": [
+              "cloudwatch:GetMetricData",
+              "cloudwatch:GetMetricStatistics",
+              "cloudwatch:ListMetrics",
+              "cloudwatch:DescribeAlarms"
+            ],
+            "Resource": "*"
+          }
+        ]
+      }
+    },
+    "lambda_invoke_only": {
+      "description": "Invoke-only access to acme Lambda functions",
+      "policy": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Sid": "LambdaInvoke",
+            "Effect": "Allow",
+            "Action": [
+              "lambda:InvokeFunction"
+            ],
+            "Resource": "arn:aws:lambda:us-east-1:238141764839:function:acme-*"
+          }
+        ]
+      }
+    }
+  },
+  "trust_policies": {
+    "lambda_service": {
+      "description": "Trust policy for Lambda service",
+      "policy": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": {
+              "Service": "lambda.amazonaws.com"
+            },
+            "Action": "sts:AssumeRole"
+          }
+        ]
+      }
+    },
+    "cross_account": {
+      "description": "Trust policy for cross-account access with external ID",
+      "policy": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": {
+              "AWS": "arn:aws:iam::OTHER_ACCOUNT_ID:root"
+            },
+            "Action": "sts:AssumeRole",
+            "Condition": {
+              "StringEquals": {
+                "sts:ExternalId": "acme-external-id"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "ecs_tasks": {
+      "description": "Trust policy for ECS tasks",
+      "policy": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": {
+              "Service": "ecs-tasks.amazonaws.com"
+            },
+            "Action": "sts:AssumeRole"
+          }
+        ]
+      }
+    }
+  },
+  "permission_boundaries": {
+    "developer_boundary": {
+      "description": "Permission boundary for developer-created roles",
+      "policy": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Sid": "AllowedServices",
+            "Effect": "Allow",
+            "Action": [
+              "lambda:*",
+              "s3:*",
+              "logs:*",
+              "cloudwatch:*",
+              "secretsmanager:GetSecretValue"
+            ],
+            "Resource": "*"
+          },
+          {
+            "Sid": "DenyIAMEscalation",
+            "Effect": "Deny",
+            "Action": [
+              "iam:CreateUser",
+              "iam:CreateAccessKey",
+              "iam:AttachUserPolicy",
+              "iam:PutUserPolicy"
+            ],
+            "Resource": "*"
+          },
+          {
+            "Sid": "DenyBillingAccess",
+            "Effect": "Deny",
+            "Action": [
+              "aws-portal:*",
+              "budgets:*",
+              "ce:*"
+            ],
+            "Resource": "*"
+          }
+        ]
+      }
+    }
+  }
+}

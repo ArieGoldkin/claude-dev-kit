@@ -1,0 +1,24 @@
+{
+  "name": "dtk",
+  "version": "2.0.5",
+  "description": "DevOps development toolkit - 15 skills, 2 agents, 13 commands for infrastructure and backend development, including Husky pre-commit hook setup",
+  "author": {
+    "name": "Arie Goldkin",
+    "email": "ariegoldkin88@gmail.com"
+  },
+  "homepage": "https://github.com/ArieGoldkin/claude-dev-kit/blob/main/plugins/devops-toolkit/README.md",
+  "repository": "https://github.com/ArieGoldkin/claude-dev-kit",
+  "license": "MIT",
+  "dependencies": ["ctk", "etk"],
+  "keywords": [
+    "devops",
+    "infrastructure",
+    "terraform",
+    "python",
+    "lambda",
+    "postgresql",
+    "aws",
+    "ci-cd",
+    "monitoring"
+  ]
+}

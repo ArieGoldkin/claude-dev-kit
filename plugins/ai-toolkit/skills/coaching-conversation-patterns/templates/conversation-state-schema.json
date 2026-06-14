@@ -1,0 +1,333 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CoachingConversationState",
+  "description": "Schema for tracking AI coaching conversation state across turns and sessions",
+  "type": "object",
+  "required": ["session_id", "member_id", "started_at", "turns"],
+  "properties": {
+    "session_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this coaching session"
+    },
+    "member_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Identifier for the member being coached"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when session started"
+    },
+    "last_activity": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of last activity"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["active", "paused", "ended", "escalated"],
+      "default": "active",
+      "description": "Current session status"
+    },
+    "turns": {
+      "type": "array",
+      "description": "Ordered list of conversation turns",
+      "items": {
+        "$ref": "#/definitions/ConversationTurn"
+      }
+    },
+    "turn_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total number of turns in conversation"
+    },
+    "current_topic": {
+      "type": "string",
+      "nullable": true,
+      "description": "Primary topic currently being discussed"
+    },
+    "topics_discussed": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "All topics covered in this session"
+    },
+    "session_objective": {
+      "type": "string",
+      "nullable": true,
+      "description": "Stated objective for this coaching session"
+    },
+    "sentiment": {
+      "$ref": "#/definitions/SentimentTracking"
+    },
+    "goals": {
+      "$ref": "#/definitions/GoalTracking"
+    },
+    "commitments": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/ActionItem"
+      },
+      "description": "Commitments made during this session"
+    },
+    "safety": {
+      "$ref": "#/definitions/SafetyTracking"
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "coach_model_version": {
+          "type": "string",
+          "description": "Version of the coaching model used"
+        },
+        "platform_version": {
+          "type": "string",
+          "description": "Platform version"
+        },
+        "channel": {
+          "type": "string",
+          "enum": ["chat", "sms", "email", "voice"],
+          "description": "Communication channel"
+        }
+      }
+    }
+  },
+  "definitions": {
+    "ConversationTurn": {
+      "type": "object",
+      "required": ["role", "content", "timestamp"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Unique identifier for this turn"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["member", "coach", "system"],
+          "description": "Who sent this message"
+        },
+        "content": {
+          "type": "string",
+          "description": "Message content"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the message was sent"
+        },
+        "sentiment": {
+          "type": "string",
+          "enum": ["positive", "neutral", "concerned", "distressed"],
+          "nullable": true,
+          "description": "Detected sentiment for member messages"
+        },
+        "topics": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Topics mentioned in this turn"
+        },
+        "intent": {
+          "type": "string",
+          "nullable": true,
+          "description": "Detected intent (question, update, concern, celebration, etc.)"
+        },
+        "safety_flags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Any safety concerns detected in this turn"
+        }
+      }
+    },
+    "SentimentTracking": {
+      "type": "object",
+      "properties": {
+        "current": {
+          "type": "string",
+          "enum": ["positive", "neutral", "concerned", "distressed"],
+          "description": "Current detected sentiment"
+        },
+        "trajectory": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["positive", "neutral", "concerned", "distressed"]
+          },
+          "description": "Sentiment values over time"
+        },
+        "trend": {
+          "type": "string",
+          "enum": ["improving", "stable", "declining"],
+          "description": "Overall sentiment trend"
+        },
+        "change_detected": {
+          "type": "boolean",
+          "description": "Whether a significant sentiment change was detected"
+        },
+        "last_positive_turn": {
+          "type": "integer",
+          "nullable": true,
+          "description": "Turn number of last positive sentiment"
+        }
+      }
+    },
+    "GoalTracking": {
+      "type": "object",
+      "properties": {
+        "goals_discussed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Goal IDs discussed this session"
+        },
+        "active_goal_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Currently active goal IDs"
+        },
+        "new_goals_created": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SMARTGoal"
+          },
+          "description": "New goals created during session"
+        },
+        "goals_completed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Goals marked complete this session"
+        }
+      }
+    },
+    "SMARTGoal": {
+      "type": "object",
+      "required": ["specific"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "specific": {
+          "type": "string",
+          "description": "What exactly will be done"
+        },
+        "measurable": {
+          "type": "string",
+          "description": "How progress will be tracked"
+        },
+        "achievable": {
+          "type": "string",
+          "description": "Why this is realistic"
+        },
+        "relevant": {
+          "type": "string",
+          "description": "Why this matters"
+        },
+        "time_bound": {
+          "type": "string",
+          "description": "Timeline or deadline"
+        },
+        "barriers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Anticipated obstacles"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "ActionItem": {
+      "type": "object",
+      "required": ["description", "created_at"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "description": {
+          "type": "string",
+          "description": "What the member committed to do"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "due_date": {
+          "type": "string",
+          "format": "date",
+          "nullable": true
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "completed", "skipped", "modified"],
+          "default": "pending"
+        },
+        "related_goal_id": {
+          "type": "string",
+          "format": "uuid",
+          "nullable": true,
+          "description": "Associated goal if any"
+        },
+        "follow_up_date": {
+          "type": "string",
+          "format": "date",
+          "nullable": true,
+          "description": "When to follow up on this item"
+        }
+      }
+    },
+    "SafetyTracking": {
+      "type": "object",
+      "properties": {
+        "flags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Safety concerns detected"
+        },
+        "highest_severity": {
+          "type": "string",
+          "enum": ["none", "low", "medium", "high", "critical"],
+          "default": "none"
+        },
+        "needs_human_review": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether session requires human coach review"
+        },
+        "escalation_reason": {
+          "type": "string",
+          "nullable": true,
+          "description": "Reason for escalation if applicable"
+        },
+        "escalated_at": {
+          "type": "string",
+          "format": "date-time",
+          "nullable": true
+        },
+        "crisis_resources_provided": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether crisis resources were shared"
+        }
+      }
+    }
+  }
+}

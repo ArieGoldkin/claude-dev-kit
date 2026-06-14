@@ -1,0 +1,2 @@
+# Override root .gitignore — dist is the bundled MCP server shipped with the plugin
+!dist/

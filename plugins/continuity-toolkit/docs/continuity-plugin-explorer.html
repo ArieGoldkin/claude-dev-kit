@@ -1,0 +1,1580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Continuity Plugin Explorer</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#1c2129;--bg4:#21262d;
+  --border:#30363d;--text:#c9d1d9;--text2:#8b949e;--text3:#6e7681;
+  --accent:#58a6ff;--green:#3fb950;--yellow:#d29922;--red:#f85149;
+  --orange:#db6d28;--purple:#bc8cff;--cyan:#39d2c0;
+  --mono:'SF Mono','Cascadia Code','Fira Code',monospace;
+  --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --radius:8px;
+}
+html{font-size:15px;scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.6;min-height:100vh}
+a{color:var(--accent);text-decoration:none}
+
+/* Layout */
+.app{display:flex;flex-direction:column;min-height:100vh}
+header{background:var(--bg2);border-bottom:1px solid var(--border);padding:1rem 1.5rem;display:flex;align-items:center;gap:1rem;position:sticky;top:0;z-index:100}
+header h1{font-size:1.15rem;font-weight:600;display:flex;align-items:center;gap:.5rem}
+header h1 .icon{font-size:1.3rem}
+header .badge{background:var(--accent);color:var(--bg);font-size:.65rem;padding:2px 7px;border-radius:10px;font-weight:700;letter-spacing:.5px}
+
+/* Tabs */
+.tabs{display:flex;gap:0;overflow-x:auto;padding:0 1.5rem;background:var(--bg2);border-bottom:1px solid var(--border);scrollbar-width:none;align-items:stretch}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:.65rem 1rem;font-size:.8rem;font-weight:500;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-group{display:flex;gap:0;align-items:stretch;position:relative}
+.tab-group::before{content:attr(data-label);position:absolute;top:2px;left:8px;font-size:.55rem;text-transform:uppercase;letter-spacing:.8px;font-weight:700;pointer-events:none}
+.tab-group.tg-ctx::before{color:var(--cyan)}
+.tab-group.tg-sec::before{color:var(--red)}
+.tab-group.tg-infra::before{color:var(--text3)}
+.tab-sep{width:1px;background:var(--border);margin:6px 4px;flex-shrink:0}
+
+/* Main */
+main{flex:1;padding:1.5rem;max-width:1200px;margin:0 auto;width:100%}
+.panel{display:none;animation:fadeIn .25s ease}
+.panel.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* Common */
+h2{font-size:1.3rem;font-weight:600;margin-bottom:1rem;display:flex;align-items:center;gap:.5rem}
+h3{font-size:1rem;font-weight:600;margin-bottom:.5rem;color:var(--text)}
+h4{font-size:.85rem;font-weight:600;color:var(--text2);margin-bottom:.35rem;text-transform:uppercase;letter-spacing:.5px}
+p{color:var(--text2);margin-bottom:.75rem;font-size:.9rem}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem}
+.card-header{display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none}
+.card-header h3{margin:0;display:flex;align-items:center;gap:.5rem}
+.card-body{max-height:0;overflow:hidden;transition:max-height .35s ease}
+.card.open .card-body{max-height:3000px}
+.chevron{transition:transform .25s;color:var(--text3);font-size:.8rem}
+.card.open .chevron{transform:rotate(90deg)}
+.badge-sm{font-size:.65rem;padding:2px 6px;border-radius:4px;font-weight:600}
+.badge-green{background:rgba(63,185,80,.15);color:var(--green)}
+.badge-yellow{background:rgba(210,153,34,.15);color:var(--yellow)}
+.badge-red{background:rgba(248,81,73,.15);color:var(--red)}
+.badge-blue{background:rgba(88,166,255,.15);color:var(--accent)}
+.badge-purple{background:rgba(188,140,255,.15);color:var(--purple)}
+.badge-cyan{background:rgba(57,210,192,.15);color:var(--cyan)}
+
+/* Code */
+pre{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:1rem;overflow-x:auto;font-family:var(--mono);font-size:.8rem;line-height:1.7;margin:.75rem 0}
+code{font-family:var(--mono);font-size:.8rem}
+.inline-code{background:var(--bg3);padding:1px 5px;border-radius:3px;font-size:.8rem}
+
+/* JSON syntax */
+.json-key{color:var(--accent)}
+.json-str{color:var(--green)}
+.json-num{color:var(--orange)}
+.json-bool{color:var(--purple)}
+.json-null{color:var(--text3)}
+.json-comment{color:var(--text3);font-style:italic}
+
+/* Timeline */
+.timeline{position:relative;padding-left:2.5rem}
+.timeline::before{content:'';position:absolute;left:.75rem;top:0;bottom:0;width:2px;background:var(--border)}
+.tl-item{position:relative;margin-bottom:1.5rem;animation:slideIn .4s ease both}
+.tl-item:nth-child(1){animation-delay:.05s}
+.tl-item:nth-child(2){animation-delay:.15s}
+.tl-item:nth-child(3){animation-delay:.25s}
+.tl-item:nth-child(4){animation-delay:.35s}
+.tl-item:nth-child(5){animation-delay:.45s}
+@keyframes slideIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
+.tl-dot{position:absolute;left:-2.5rem;top:.35rem;width:14px;height:14px;border-radius:50%;border:2px solid var(--border);background:var(--bg)}
+.tl-dot.green{border-color:var(--green);background:var(--green);box-shadow:0 0 8px rgba(63,185,80,.3)}
+.tl-dot.blue{border-color:var(--accent);background:var(--accent);box-shadow:0 0 8px rgba(88,166,255,.3)}
+.tl-dot.yellow{border-color:var(--yellow);background:var(--yellow);box-shadow:0 0 8px rgba(210,153,34,.3)}
+.tl-dot.red{border-color:var(--red);background:var(--red);box-shadow:0 0 8px rgba(248,81,73,.3)}
+.tl-dot.purple{border-color:var(--purple);background:var(--purple);box-shadow:0 0 8px rgba(188,140,255,.3)}
+.tl-content{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1rem}
+.tl-content h3{font-size:.9rem}
+.tl-content .hook-name{color:var(--cyan);font-family:var(--mono);font-size:.8rem}
+.tl-content ul{padding-left:1.2rem;margin-top:.35rem}
+.tl-content li{font-size:.82rem;color:var(--text2);margin-bottom:.2rem}
+
+/* Data flow */
+.flow-diagram{display:flex;flex-direction:column;gap:1rem;padding:1rem 0}
+.flow-row{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}
+.flow-node{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:.65rem 1rem;font-size:.8rem;font-family:var(--mono);min-width:140px;text-align:center}
+.flow-node.central{border-color:var(--accent);background:rgba(88,166,255,.08);font-weight:600;min-width:200px}
+.flow-arrow{color:var(--text3);font-size:1.2rem;flex-shrink:0}
+.flow-label{font-size:.7rem;color:var(--text3);font-style:italic}
+
+/* File tree */
+.file-tree{font-family:var(--mono);font-size:.82rem;line-height:2}
+.file-tree .dir{color:var(--accent);cursor:pointer}
+.file-tree .dir:hover{text-decoration:underline}
+.file-tree .file{color:var(--text2)}
+.file-tree .desc{color:var(--text3);font-family:var(--sans);font-size:.75rem}
+.tree-detail{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:1rem;margin:.5rem 0 .5rem 1.5rem;font-family:var(--sans);font-size:.82rem;display:none}
+.tree-detail.open{display:block;animation:fadeIn .2s ease}
+
+/* Security table */
+.sec-table{width:100%;border-collapse:collapse;font-size:.82rem}
+.sec-table th{text-align:left;padding:.6rem .75rem;background:var(--bg3);color:var(--text2);font-weight:600;border-bottom:1px solid var(--border);font-size:.75rem;text-transform:uppercase;letter-spacing:.3px}
+.sec-table td{padding:.5rem .75rem;border-bottom:1px solid var(--border);vertical-align:top}
+.sec-table tr:hover td{background:rgba(88,166,255,.03)}
+.sec-table .pattern{font-family:var(--mono);color:var(--red);font-size:.78rem}
+.sec-table .category{font-weight:600}
+.sec-filter{display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap}
+.sec-filter button{padding:.35rem .75rem;font-size:.75rem;border-radius:4px;border:1px solid var(--border);background:var(--bg2);color:var(--text2);cursor:pointer;transition:all .15s}
+.sec-filter button.active{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+.sec-filter button:hover:not(.active){border-color:var(--text3)}
+
+/* StatusLine preview */
+.statusline-preview{background:#000;border-radius:6px;padding:1.25rem;font-family:var(--mono);border:1px solid var(--border)}
+.statusline-line{margin-bottom:.25rem;font-size:.85rem;white-space:pre}
+.sl-cyan{color:#39d2c0}
+.sl-green{color:#3fb950}
+.sl-yellow{color:#d29922}
+.sl-red{color:#f85149}
+.sl-dim{color:#6e7681}
+.sl-slider{margin-top:1rem}
+.sl-slider label{font-size:.8rem;color:var(--text2);display:block;margin-bottom:.35rem}
+.sl-slider input[type=range]{width:100%;accent-color:var(--accent)}
+
+/* Protocol viewer */
+.proto-tabs{display:flex;gap:2px;margin-bottom:1rem}
+.proto-tab{padding:.4rem .8rem;font-size:.75rem;border-radius:4px 4px 0 0;border:1px solid var(--border);border-bottom:none;background:var(--bg);color:var(--text3);cursor:pointer;transition:all .15s}
+.proto-tab.active{background:var(--bg2);color:var(--accent)}
+.proto-panel{display:none}
+.proto-panel.active{display:block}
+.proto-direction{display:flex;gap:1rem;margin-bottom:.5rem;align-items:center}
+.proto-direction .arrow{font-size:1.5rem;color:var(--text3)}
+.proto-direction .label{font-size:.75rem;padding:.2rem .5rem;border-radius:3px;font-weight:600}
+.proto-direction .stdin{background:rgba(88,166,255,.12);color:var(--accent)}
+.proto-direction .stdout{background:rgba(63,185,80,.12);color:var(--green)}
+
+/* Provider cards */
+.provider-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem}
+.provider-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;text-align:center;transition:border-color .2s}
+.provider-card:hover{border-color:var(--accent)}
+.provider-card .provider-icon{font-size:2rem;margin-bottom:.5rem}
+.provider-card h3{font-size:.95rem;margin-bottom:.35rem}
+.provider-card .env-var{font-family:var(--mono);font-size:.72rem;color:var(--cyan);background:var(--bg);padding:3px 8px;border-radius:3px;display:inline-block;margin-top:.35rem}
+
+/* Grid */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+@media(max-width:768px){.two-col{grid-template-columns:1fr}.provider-grid{grid-template-columns:1fr}}
+
+/* Prompt output (bottom) */
+.prompt-output{background:var(--bg2);border-top:1px solid var(--border);padding:1rem 1.5rem;position:sticky;bottom:0;display:none}
+.prompt-bar{display:flex;align-items:center;gap:.75rem}
+.prompt-bar .label{font-size:.75rem;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;font-weight:600;white-space:nowrap}
+.prompt-text{flex:1;font-family:var(--mono);font-size:.8rem;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.copy-btn{padding:.4rem .8rem;font-size:.75rem;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--text);cursor:pointer;transition:all .15s;white-space:nowrap}
+.copy-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* Inline copy button */
+.cmd-copy{position:relative}
+.cmd-copy pre{padding-right:2.5rem}
+.cmd-copy-btn{position:absolute;top:6px;right:6px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text3);cursor:pointer;padding:3px 5px;font-size:.7rem;line-height:1;transition:all .15s;display:flex;align-items:center;gap:3px}
+.cmd-copy-btn:hover{color:var(--accent);border-color:var(--accent)}
+.cmd-copy-btn.copied{color:var(--green);border-color:var(--green)}
+
+/* Workflow */
+.wf-loop{display:flex;align-items:stretch;gap:0;margin:1.5rem 0;flex-wrap:nowrap;overflow-x:auto;padding-bottom:.5rem}
+.wf-step{flex:1;min-width:160px;position:relative;text-align:center}
+.wf-step-inner{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1rem .75rem;height:100%;display:flex;flex-direction:column;align-items:center;gap:.35rem;transition:border-color .2s,box-shadow .2s;cursor:pointer}
+.wf-step-inner:hover{border-color:var(--accent);box-shadow:0 0 12px rgba(88,166,255,.1)}
+.wf-step-inner.active-step{border-color:var(--accent);box-shadow:0 0 12px rgba(88,166,255,.15)}
+.wf-step .wf-icon{font-size:1.5rem}
+.wf-step .wf-label{font-size:.78rem;font-weight:600}
+.wf-step .wf-cmd{font-family:var(--mono);font-size:.68rem;color:var(--cyan)}
+.wf-step .wf-sub{font-size:.68rem;color:var(--text3)}
+.wf-arrow{display:flex;align-items:center;color:var(--text3);font-size:1.2rem;padding:0 .15rem;flex-shrink:0}
+.wf-detail{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin-top:1rem;display:none;animation:fadeIn .25s ease}
+.wf-detail.visible{display:block}
+.wf-detail h3{margin-bottom:.75rem;display:flex;align-items:center;gap:.5rem}
+.wf-section{margin-bottom:1.25rem}
+.wf-section h4{margin-bottom:.5rem;display:flex;align-items:center;gap:.4rem}
+.wf-section ul{padding-left:1.2rem;font-size:.85rem;color:var(--text2)}
+.wf-section li{margin-bottom:.25rem}
+.wf-section li code{font-size:.78rem}
+.wf-indicator{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px}
+.wf-indicator.append{background:var(--green)}
+.wf-indicator.replace{background:var(--yellow)}
+.wf-indicator.archive{background:var(--purple)}
+.wf-indicator.read{background:var(--accent)}
+
+/* Ledger anatomy */
+.ledger-anatomy{background:var(--bg);border:1px solid var(--border);border-radius:6px;overflow:hidden;font-family:var(--mono);font-size:.78rem;line-height:1.8}
+.ledger-section{padding:.5rem .75rem;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s}
+.ledger-section:last-child{border-bottom:none}
+.ledger-section:hover{background:rgba(88,166,255,.04)}
+.ledger-section.ls-active{background:rgba(88,166,255,.06)}
+.ledger-section .ls-header{display:flex;justify-content:space-between;align-items:center}
+.ledger-section .ls-title{font-weight:600}
+.ledger-section .ls-action{font-size:.65rem;padding:2px 6px;border-radius:3px;font-weight:600;font-family:var(--sans)}
+.ledger-section .ls-content{font-family:var(--sans);font-size:.8rem;color:var(--text2);padding-top:.35rem;display:none}
+.ledger-section.ls-active .ls-content{display:block}
+
+/* Maintenance schedule */
+.maint-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.75rem}
+.maint-card{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:.75rem 1rem;text-align:center}
+.maint-card .freq{font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);font-weight:600}
+.maint-card .cmd{font-family:var(--mono);font-size:.85rem;color:var(--cyan);margin:.25rem 0}
+.maint-card .when{font-size:.75rem;color:var(--text2)}
+
+/* Threshold meter */
+.threshold-bar{position:relative;height:24px;background:var(--bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin:.5rem 0}
+.threshold-fill{height:100%;border-radius:12px;transition:width .5s ease,background .3s}
+.threshold-marks{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:center}
+.threshold-mark{position:absolute;height:100%;width:1px;background:var(--text3)}
+.threshold-label{font-size:.65rem;color:var(--text3);text-align:center;margin-top:2px}
+@media(max-width:768px){.wf-loop{flex-wrap:wrap}.wf-arrow{transform:rotate(90deg);padding:.25rem 0}}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- Header -->
+<header>
+  <h1><span class="icon">&#9881;</span> Continuity Plugin Explorer</h1>
+  <span class="badge">v1.0.0</span>
+</header>
+
+<!-- Tabs -->
+<nav class="tabs" id="tabs">
+  <div class="tab active" data-panel="overview">Overview</div>
+  <div class="tab-sep"></div>
+  <div class="tab-group tg-ctx" data-label="Context">
+    <div class="tab" data-panel="workflow">Workflow</div>
+    <div class="tab" data-panel="dataflow">Data Flow</div>
+    <div class="tab" data-panel="files">Files</div>
+    <div class="tab" data-panel="statusline">StatusLine</div>
+  </div>
+  <div class="tab-sep"></div>
+  <div class="tab-group tg-sec" data-label="Security">
+    <div class="tab" data-panel="security">Patterns</div>
+  </div>
+  <div class="tab-sep"></div>
+  <div class="tab-group tg-infra" data-label="Infrastructure">
+    <div class="tab" data-panel="lifecycle">Lifecycle</div>
+    <div class="tab" data-panel="hooks">Hooks</div>
+    <div class="tab" data-panel="protocol">Protocol</div>
+    <div class="tab" data-panel="providers">Providers</div>
+  </div>
+</nav>
+
+<!-- Panels -->
+<main>
+
+<!-- ===== OVERVIEW ===== -->
+<section class="panel active" id="panel-overview">
+  <h2>How the Continuity Plugin Works</h2>
+  <p>The plugin does two things, connected by a lifecycle orchestration layer.</p>
+
+  <!-- Quick Setup -->
+  <div class="card" style="border-color:var(--green);margin-top:1rem">
+    <div style="display:flex;align-items:center;gap:.65rem;margin-bottom:.75rem">
+      <div style="width:40px;height:40px;border-radius:50%;background:rgba(63,185,80,.12);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0">&#9889;</div>
+      <div>
+        <h3 style="color:var(--green);margin:0">Quick Setup</h3>
+        <span style="font-size:.72rem;color:var(--text3)">3 steps to get started</span>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1rem">
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:.75rem">
+        <div style="font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:.5rem">Step 1 &mdash; Add Marketplace</div>
+        <div class="cmd-copy"><pre style="margin:0;padding:.5rem;font-size:.72rem;line-height:1.6;border:none">/plugin marketplace add https://github.com/ArieGoldkin/claude-dev-kit.git</pre><button class="cmd-copy-btn" data-cmd="/plugin marketplace add https://github.com/ArieGoldkin/claude-dev-kit.git">&#128203;</button></div>
+      </div>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:.75rem">
+        <div style="font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:.5rem">Step 2 &mdash; Install Plugin</div>
+        <div class="cmd-copy"><pre style="margin:0;padding:.5rem;font-size:.72rem;line-height:1.6;border:none">/plugin install continuity-toolkit@claude-dev-kit</pre><button class="cmd-copy-btn" data-cmd="/plugin install continuity-toolkit@claude-dev-kit">&#128203;</button></div>
+      </div>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:.75rem">
+        <div style="font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:.5rem">Step 3 &mdash; Initialize</div>
+        <div class="cmd-copy"><pre style="margin:0;padding:.5rem;font-size:.72rem;line-height:1.6;border:none">/setup-continuity</pre><button class="cmd-copy-btn" data-cmd="/setup-continuity">&#128203;</button></div>
+        <div class="cmd-copy" style="margin-top:4px"><pre style="margin:0;padding:.5rem;font-size:.72rem;line-height:1.6;border:none">/setup-context-monitor</pre><button class="cmd-copy-btn" data-cmd="/setup-context-monitor">&#128203;</button></div>
+      </div>
+    </div>
+
+    <div style="font-size:.78rem;color:var(--text3)">
+      Requires: Claude Code v4.1+ &bull; Node.js 22+ &bull;
+      <a href="https://github.com/ArieGoldkin/claude-dev-kit" target="_blank" style="color:var(--accent)">GitHub Repo</a>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin:1.5rem 0">
+    <!-- Pillar 1: Context -->
+    <div class="card" style="border-color:var(--cyan);cursor:pointer" onclick="switchTab('workflow')">
+      <div style="display:flex;align-items:center;gap:.65rem;margin-bottom:.75rem">
+        <div style="width:40px;height:40px;border-radius:50%;background:rgba(57,210,192,.12);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0">&#128214;</div>
+        <div>
+          <h3 style="color:var(--cyan);margin:0">Context Continuity</h3>
+          <span style="font-size:.72rem;color:var(--text3)">The primary value</span>
+        </div>
+      </div>
+      <p style="font-size:.85rem">Multi-session state persistence. The ledger tracks your project state, handoffs capture session boundaries, and the resume system loads it all back seamlessly.</p>
+      <div style="margin-top:.75rem;display:flex;flex-direction:column;gap:.35rem">
+        <div style="display:flex;align-items:center;gap:.5rem;font-size:.8rem"><span class="badge-sm badge-cyan">/save-state</span> <span style="color:var(--text3)">Append work to ledger</span></div>
+        <div style="display:flex;align-items:center;gap:.5rem;font-size:.8rem"><span class="badge-sm badge-cyan">/create-handoff</span> <span style="color:var(--text3)">Archive + clean + handoff doc</span></div>
+        <div style="display:flex;align-items:center;gap:.5rem;font-size:.8rem"><span class="badge-sm badge-cyan">/resume-session</span> <span style="color:var(--text3)">Load full context back</span></div>
+        <div style="display:flex;align-items:center;gap:.5rem;font-size:.8rem"><span class="badge-sm badge-cyan">/check-maintenance</span> <span style="color:var(--text3)">Health check + archival</span></div>
+      </div>
+      <div style="margin-top:.75rem;display:flex;flex-wrap:wrap;gap:.35rem">
+        <span class="badge-sm badge-blue">Ledger</span>
+        <span class="badge-sm badge-blue">Handoffs</span>
+        <span class="badge-sm badge-blue">shared-context.json</span>
+        <span class="badge-sm badge-blue">Dirty Tracking</span>
+        <span class="badge-sm badge-blue">Context Monitor</span>
+        <span class="badge-sm badge-blue">StatusLine</span>
+      </div>
+    </div>
+
+    <!-- Pillar 2: Security -->
+    <div class="card" style="border-color:var(--red);cursor:pointer" onclick="switchTab('security')">
+      <div style="display:flex;align-items:center;gap:.65rem;margin-bottom:.75rem">
+        <div style="width:40px;height:40px;border-radius:50%;background:rgba(248,81,73,.12);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0">&#128737;</div>
+        <div>
+          <h3 style="color:var(--red);margin:0">Security Guardrails</h3>
+          <span style="font-size:.72rem;color:var(--text3)">The protective layer</span>
+        </div>
+      </div>
+      <p style="font-size:.85rem">Prevents Claude from writing to sensitive files or running dangerous commands. Validates every tool call before execution. Cannot be disabled.</p>
+      <div style="margin-top:.75rem;display:flex;flex-direction:column;gap:.35rem">
+        <div style="display:flex;align-items:center;gap:.5rem;font-size:.8rem"><span class="badge-sm badge-red">Block</span> <span style="color:var(--text3)">.env, .ssh/, .aws/credentials, system dirs</span></div>
+        <div style="display:flex;align-items:center;gap:.5rem;font-size:.8rem"><span class="badge-sm badge-red">Block</span> <span style="color:var(--text3)">rm -rf, fork bombs, env dumps</span></div>
+        <div style="display:flex;align-items:center;gap:.5rem;font-size:.8rem"><span class="badge-sm badge-red">Block</span> <span style="color:var(--text3)">Symlink bypass attacks</span></div>
+        <div style="display:flex;align-items:center;gap:.5rem;font-size:.8rem"><span class="badge-sm badge-yellow">Audit</span> <span style="color:var(--text3)">Every decision logged</span></div>
+      </div>
+      <div style="margin-top:.75rem;display:flex;flex-wrap:wrap;gap:.35rem">
+        <span class="badge-sm badge-red">Non-disableable</span>
+        <span class="badge-sm badge-red">Path Resolution</span>
+        <span class="badge-sm badge-red">Symlink Protection</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Infrastructure -->
+  <div class="card" style="border-color:var(--border);cursor:pointer" onclick="switchTab('lifecycle')">
+    <div style="display:flex;align-items:center;gap:.65rem;margin-bottom:.75rem">
+      <div style="width:40px;height:40px;border-radius:50%;background:rgba(139,148,158,.1);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0">&#9881;</div>
+      <div>
+        <h3 style="color:var(--text2);margin:0">Lifecycle Orchestration</h3>
+        <span style="font-size:.72rem;color:var(--text3)">The glue that connects everything</span>
+      </div>
+    </div>
+    <p style="font-size:.85rem">6 hooks fire at the right moments in the session lifecycle. They read JSON from stdin, do their work, and return JSON to stdout. The infrastructure handles locking, atomic writes, and graceful degradation.</p>
+    <div style="display:flex;gap:1.5rem;margin-top:.75rem;flex-wrap:wrap">
+      <div style="font-size:.8rem"><span style="color:var(--green)">&#9679;</span> <strong>SessionStart</strong> &rarr; init + load context</div>
+      <div style="font-size:.8rem"><span style="color:var(--accent)">&#9679;</span> <strong>PreToolUse</strong> &rarr; security check</div>
+      <div style="font-size:.8rem"><span style="color:var(--cyan)">&#9679;</span> <strong>PostToolUse</strong> &rarr; dirty tracking</div>
+      <div style="font-size:.8rem"><span style="color:var(--yellow)">&#9679;</span> <strong>UserPromptSubmit</strong> &rarr; context warnings</div>
+      <div style="font-size:.8rem"><span style="color:var(--purple)">&#9679;</span> <strong>PreCompact</strong> &rarr; save to ledger</div>
+      <div style="font-size:.8rem"><span style="color:var(--red)">&#9679;</span> <strong>SessionEnd</strong> &rarr; clean shutdown</div>
+    </div>
+  </div>
+
+  <!-- How they connect -->
+  <div class="card" style="margin-top:.25rem">
+    <h3>How They Connect</h3>
+    <pre style="font-size:.78rem;line-height:1.8;border:none;padding:.5rem 0;margin:0"><span class="json-comment">                      ┌─────────────────────────────────┐</span>
+<span class="json-comment">                      │     Context Continuity          │</span>
+<span class="json-comment">                      │                                 │</span>
+<span class="json-comment">                      │  Ledger  Handoffs  shared-ctx   │</span>
+<span class="json-comment">                      │  /save   /handoff  /resume      │</span>
+<span class="json-comment">                      │  Dirty tracking  Context monitor │</span>
+<span class="json-comment">                      └────────────┬────────────────────┘</span>
+<span class="json-comment">                                   │</span>
+<span style="color:var(--text2)">  ┌────────────────────────────────┼────────────────────────────────┐</span>
+<span style="color:var(--text2)">  │           Lifecycle Orchestration (6 hooks)                     │</span>
+<span style="color:var(--text2)">  │                                                                │</span>
+<span style="color:var(--text2)">  │  SessionStart ──▶ PreToolUse ──▶ PostToolUse ──▶ SessionEnd     │</span>
+<span style="color:var(--text2)">  │       │              │                              │          │</span>
+<span style="color:var(--text2)">  │   Load context   Validate     Track edits     Mark clean end   │</span>
+<span style="color:var(--text2)">  │                                                                │</span>
+<span style="color:var(--text2)">  │  stdin (JSON) ──▶ hook logic ──▶ stdout (JSON)                  │</span>
+<span style="color:var(--text2)">  │  mkdir locking    atomic writes    graceful degradation         │</span>
+<span style="color:var(--text2)">  └────────────────────────────────┼────────────────────────────────┘</span>
+<span class="json-comment">                                   │</span>
+<span class="json-comment">                      ┌────────────┴────────────────────┐</span>
+<span class="json-comment">                      │     Security Guardrails          │</span>
+<span class="json-comment">                      │                                 │</span>
+<span class="json-comment">                      │  Path validation   Bash blocking │</span>
+<span class="json-comment">                      │  Symlink resolve   Audit logging │</span>
+<span class="json-comment">                      │  Non-disableable   Per-tool rules│</span>
+<span class="json-comment">                      └─────────────────────────────────┘</span></pre>
+  </div>
+</section>
+
+<!-- ===== 1. LIFECYCLE ===== -->
+<section class="panel" id="panel-lifecycle">
+  <h2><span style="color:var(--text3)">&#9881;</span> Session Lifecycle</h2>
+  <p>Every Claude Code session follows this flow. Hooks fire at each stage, managing state, security, and context tracking automatically.</p>
+
+  <div class="timeline" id="timeline">
+    <div class="tl-item">
+      <div class="tl-dot green"></div>
+      <div class="tl-content">
+        <h3>SessionStart <span class="badge-sm badge-green">lifecycle/session-loader</span></h3>
+        <p style="margin:.25rem 0;font-size:.82rem;color:var(--text2)">Fires when a session begins (startup, resume, clear, or compact).</p>
+        <ul>
+          <li>Creates <code class="inline-code">.claude/continuity/</code> directory structure if missing</li>
+          <li>Checks for stale sessions (<code class="inline-code">was_cleanly_ended === false</code>)</li>
+          <li>Resets dirty tracking (count=0, files=[])</li>
+          <li>Extracts compact ledger summary (~500-800 bytes)</li>
+          <li>Detects current git branch</li>
+          <li>Outputs <code class="inline-code">=== SESSION CONTEXT ===</code> message to Claude</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-dot blue"></div>
+      <div class="tl-content">
+        <h3>Tool Usage Loop <span class="badge-sm badge-blue">during session</span></h3>
+        <p style="margin:.25rem 0;font-size:.82rem;color:var(--text2)">Repeats for every tool call Claude makes.</p>
+        <ul>
+          <li><strong>PreToolUse</strong> &rarr; <span class="hook-name">pretool/security-blocker</span> validates paths &amp; commands</li>
+          <li>Tool executes (if allowed)</li>
+          <li><strong>PostToolUse</strong> &rarr; <span class="hook-name">posttool/dirty-state-tracker</span> counts unique file edits</li>
+          <li><strong>UserPromptSubmit</strong> &rarr; <span class="hook-name">prompt/context-monitor</span> checks context window usage</li>
+          <li><strong>StatusLine</strong> updates progress bar, cost, and duration after each response</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-dot yellow"></div>
+      <div class="tl-content">
+        <h3>Context Warnings <span class="badge-sm badge-yellow">prompt/context-monitor</span></h3>
+        <p style="margin:.25rem 0;font-size:.82rem;color:var(--text2)">Injected invisibly into Claude's context as usage grows.</p>
+        <ul>
+          <li><strong>70%</strong> &mdash; Advisory: "Consider <code class="inline-code">/create-handoff</code> at stopping point"</li>
+          <li><strong>80%</strong> &mdash; Warning: "Recommend handoff then <code class="inline-code">/clear</code> soon"</li>
+          <li><strong>90%+</strong> &mdash; Critical: "Run handoff NOW. Auto-compaction imminent"</li>
+          <li>Rate-limited: only warns when tier <em>increases</em>. Resets after compaction.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-dot purple"></div>
+      <div class="tl-content">
+        <h3>PreCompact <span class="badge-sm badge-purple">lifecycle/pre-compact-saver</span></h3>
+        <p style="margin:.25rem 0;font-size:.82rem;color:var(--text2)">Fires just before conversation compaction.</p>
+        <ul>
+          <li>Appends timestamp marker to the project ledger</li>
+          <li>Format: <code class="inline-code">Auto-saved before compaction: 2026-03-01T12:00:00Z</code></li>
+          <li>Warns if ledger file not found</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-dot red"></div>
+      <div class="tl-content">
+        <h3>SessionEnd <span class="badge-sm badge-red">lifecycle/session-end</span></h3>
+        <p style="margin:.25rem 0;font-size:.82rem;color:var(--text2)">Fires when the session ends (exit, clear, logout).</p>
+        <ul>
+          <li>Sets <code class="inline-code">was_cleanly_ended = true</code> in shared-context.json</li>
+          <li>Updates <code class="inline-code">last_activity</code> timestamp</li>
+          <li>Prevents false "stale session" warnings on next start</li>
+          <li>Uses shorter lock timeout (2s vs 5s for other hooks)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== WORKFLOW ===== -->
+<section class="panel" id="panel-workflow">
+  <h2><span style="color:var(--cyan)">&#128214;</span> Save / Handoff / Resume Workflow</h2>
+  <p>The continuity system uses an <strong>append-until-handoff</strong> model. You accumulate state in the ledger during a session, then clean it up when you create a handoff. The next session resumes from where you left off.</p>
+
+  <!-- Workflow loop diagram -->
+  <div class="wf-loop" id="wf-loop">
+    <div class="wf-step" data-wf="develop">
+      <div class="wf-step-inner"><div class="wf-icon">&#128187;</div><div class="wf-label">Develop</div><div class="wf-sub">Write code, fix bugs</div></div>
+    </div>
+    <div class="wf-arrow">&rarr;</div>
+    <div class="wf-step" data-wf="save">
+      <div class="wf-step-inner"><div class="wf-icon">&#128190;</div><div class="wf-label">Save State</div><div class="wf-cmd">/save-state</div><div class="wf-sub">Every 3-5 tasks</div></div>
+    </div>
+    <div class="wf-arrow">&rarr;</div>
+    <div class="wf-step" data-wf="handoff">
+      <div class="wf-step-inner"><div class="wf-icon">&#128230;</div><div class="wf-label">Handoff</div><div class="wf-cmd">/create-handoff</div><div class="wf-sub">End of session</div></div>
+    </div>
+    <div class="wf-arrow">&rarr;</div>
+    <div class="wf-step" data-wf="resume">
+      <div class="wf-step-inner"><div class="wf-icon">&#9654;&#65039;</div><div class="wf-label">Resume</div><div class="wf-cmd">/resume-session</div><div class="wf-sub">Next session</div></div>
+    </div>
+    <div class="wf-arrow">&rarr;</div>
+    <div class="wf-step" data-wf="maintain">
+      <div class="wf-step-inner"><div class="wf-icon">&#128295;</div><div class="wf-label">Maintain</div><div class="wf-cmd">/check-maintenance</div><div class="wf-sub">Weekly</div></div>
+    </div>
+  </div>
+
+  <!-- Detail panels for each step -->
+  <div class="wf-detail visible" id="wf-detail-develop">
+    <h3>&#128187; Develop &mdash; Work Normally</h3>
+    <p>While you work, the plugin hooks run automatically in the background:</p>
+    <div class="wf-section">
+      <h4>Automatic Tracking</h4>
+      <ul>
+        <li><strong>Security blocker</strong> validates every tool call before execution</li>
+        <li><strong>Dirty tracker</strong> counts unique files you edit (warns at 15, suggests handoff at 25)</li>
+        <li><strong>Context monitor</strong> watches your context window usage and warns Claude at 70/80/90%</li>
+        <li><strong>StatusLine</strong> shows a live progress bar with context %, cost, and duration</li>
+      </ul>
+    </div>
+    <div class="wf-section">
+      <h4>When to Save</h4>
+      <ul>
+        <li>After completing 3-5 tasks</li>
+        <li>Before the context window fills up</li>
+        <li>At natural phase transitions (feature done, moving to tests, etc.)</li>
+        <li>Every 1-2 hours during long sessions</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="wf-detail" id="wf-detail-save">
+    <h3>&#128190; <code class="inline-code">/save-state</code> &mdash; Update the Ledger</h3>
+    <p>Captures current progress into the project ledger. Uses the <strong>append-until-handoff</strong> model: some sections are appended, others are replaced as a snapshot.</p>
+
+    <div class="wf-section">
+      <h4><span class="wf-indicator append"></span> APPEND &mdash; Session Activity Log</h4>
+      <ul>
+        <li>New timestamped entry added at the <strong>top</strong> of the log</li>
+        <li>Format: <code class="inline-code">### YYYY-MM-DD HH:MM</code> with 3-8 bullet points</li>
+        <li>Includes: work done, discoveries, problems/solutions, files modified</li>
+        <li><strong>Never removes</strong> previous entries (they accumulate until handoff)</li>
+      </ul>
+    </div>
+    <div class="wf-section">
+      <h4><span class="wf-indicator append"></span> APPEND &mdash; Key Decisions</h4>
+      <ul>
+        <li>New decisions added with format: <code class="inline-code">#### Decision Title (Added YYYY-MM-DD)</code></li>
+        <li>Each includes: <strong>Decision</strong>, <strong>Reasoning</strong>, <strong>Impact</strong></li>
+        <li><strong>Never removes</strong> existing decisions</li>
+      </ul>
+    </div>
+    <div class="wf-section">
+      <h4><span class="wf-indicator replace"></span> REPLACE &mdash; Current State (snapshot)</h4>
+      <ul>
+        <li><strong>Now</strong>: Current single focus (branch, status, focus)</li>
+        <li><strong>Done (Recent)</strong>: Last 10 items (rolling window)</li>
+        <li><strong>Next</strong>: Upcoming work priorities</li>
+        <li><strong>Open Questions</strong>: Blocking and non-blocking questions</li>
+      </ul>
+    </div>
+    <div class="wf-section">
+      <h4>Thresholds</h4>
+      <div style="display:flex;gap:1rem;align-items:center;margin-bottom:.5rem">
+        <span style="font-size:.8rem;color:var(--text2)">Ledger size:</span>
+        <input type="range" id="wf-ledger-slider" min="0" max="1000" value="280" style="flex:1;accent-color:var(--accent)">
+        <span id="wf-ledger-lines" style="font-family:var(--mono);font-size:.82rem;min-width:80px;text-align:right">280 lines</span>
+      </div>
+      <div class="threshold-bar">
+        <div class="threshold-fill" id="wf-threshold-fill" style="width:28%;background:var(--green)"></div>
+        <div class="threshold-marks">
+          <div class="threshold-mark" style="left:50%"></div>
+          <div class="threshold-mark" style="left:80%"></div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:.65rem;color:var(--text3);margin-top:2px">
+        <span>0</span><span style="position:absolute;left:calc(50% - 20px)">500 (warn)</span><span style="position:absolute;left:calc(80% - 20px)">800 (urgent)</span><span>1000</span>
+      </div>
+      <p id="wf-threshold-msg" style="margin-top:.5rem;font-size:.82rem"></p>
+    </div>
+  </div>
+
+  <div class="wf-detail" id="wf-detail-handoff">
+    <h3>&#128230; <code class="inline-code">/create-handoff</code> &mdash; End Session + Clean Ledger</h3>
+    <p>Creates a session handoff document (YAML) and <strong>cleans the ledger</strong> to keep it lean. This is the critical step that makes the append model sustainable.</p>
+
+    <div class="wf-section">
+      <h4>Step 1: Create Handoff File</h4>
+      <ul>
+        <li>Location: <code class="inline-code">.claude/continuity/handoffs/YYYY-MM-DD_topic-name.yaml</code></li>
+        <li>Format: YAML (~30% fewer tokens than markdown)</li>
+        <li>Contains: accomplished items, pending work, key decisions, files modified, quality checks, blockers</li>
+      </ul>
+    </div>
+    <div class="wf-section">
+      <h4>Step 2: Clean the Ledger</h4>
+      <ul>
+        <li><span class="wf-indicator archive"></span> <strong>Session Activity Log</strong>: Archived to handoff file, then <strong>cleared</strong> from ledger</li>
+        <li><span class="wf-indicator archive"></span> <strong>Key Decisions &gt;30 days</strong>: Moved to <code class="inline-code">archive/ledger-YYYY-QQ.md</code></li>
+        <li><span class="wf-indicator replace"></span> <strong>Done (Recent)</strong>: Trimmed to last 5 items</li>
+        <li><span class="wf-indicator replace"></span> <strong>Current State</strong>: Reset to current snapshot</li>
+      </ul>
+    </div>
+    <div class="wf-section">
+      <h4>Step 3: Reset Tracking</h4>
+      <ul>
+        <li><code class="inline-code">dirty_tracking.files_edited_count = 0</code></li>
+        <li><code class="inline-code">dirty_tracking.files_edited_this_session = []</code></li>
+        <li><code class="inline-code">continuity.last_handoff</code> updated to new handoff path</li>
+        <li><code class="inline-code">continuity.last_cleanup</code> updated to current timestamp</li>
+      </ul>
+    </div>
+    <div class="wf-section">
+      <h4>Cleanup Impact</h4>
+      <table class="sec-table" style="margin-top:.5rem">
+        <thead><tr><th>Content</th><th>Action</th><th>Destination</th></tr></thead>
+        <tbody>
+          <tr><td>Session Activity Log</td><td><span class="badge-sm badge-purple">Archive + Clear</span></td><td>Handoff YAML</td></tr>
+          <tr><td>Key Decisions (&gt;30 days)</td><td><span class="badge-sm badge-purple">Archive + Remove</span></td><td>archive/ledger-YYYY-QQ.md</td></tr>
+          <tr><td>Key Decisions (&lt;30 days)</td><td><span class="badge-sm badge-green">Keep</span></td><td>Ledger</td></tr>
+          <tr><td>Current State</td><td><span class="badge-sm badge-yellow">Reset</span></td><td>Ledger (snapshot)</td></tr>
+          <tr><td>Done (Recent)</td><td><span class="badge-sm badge-yellow">Trim to 5</span></td><td>Ledger</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <pre><span class="json-comment">// Example output:</span>
+Handoff created. Ledger cleaned.
+- Handoff: .claude/continuity/handoffs/2026-03-01_auth-feature.yaml
+- Files edited this session: <span class="json-num">12</span>
+- Session Activity Log: Archived <span class="json-num">5</span> entries &rarr; cleared
+- Key Decisions: Archived <span class="json-num">3</span> old (&gt;30 days) &rarr; <span class="json-num">5</span> remain
+- Ledger: <span class="json-num">456</span> lines &rarr; <span class="json-num">187</span> lines (<span class="json-num">59</span>% reduction)
+Resume with: <span class="json-str">/resume-session</span></pre>
+  </div>
+
+  <div class="wf-detail" id="wf-detail-resume">
+    <h3>&#9654;&#65039; <code class="inline-code">/resume-session</code> &mdash; Load Previous Context</h3>
+    <p>Reads the latest handoff, the current ledger, and shared-context.json to synthesize a unified context summary for the new session.</p>
+
+    <div class="wf-section">
+      <h4><span class="wf-indicator read"></span> Step 1: Find Latest Handoff</h4>
+      <ul>
+        <li>Scans <code class="inline-code">.claude/continuity/handoffs/</code> for .md and .yaml files</li>
+        <li>Sorts by modification time (newest first)</li>
+        <li>If no handoff exists, falls back to ledger + shared-context only</li>
+      </ul>
+    </div>
+    <div class="wf-section">
+      <h4><span class="wf-indicator read"></span> Step 2: Read All Context Sources</h4>
+      <ul>
+        <li><strong>Handoff</strong>: What was accomplished, blockers, recommended next task</li>
+        <li><strong>Ledger</strong>: Current State (Now, Done, Next), Key Decisions, Open Questions</li>
+        <li><strong>shared-context.json</strong>: Codebase patterns, agent decisions, pending tasks</li>
+      </ul>
+    </div>
+    <div class="wf-section">
+      <h4>Step 3: Present Unified Summary</h4>
+      <pre style="font-size:.78rem"><span class="json-comment">## Session Resumption Summary</span>
+
+<span class="json-key">### Last Session</span> (from handoff)
+- <span class="json-str">Date</span>: 2026-02-28
+- <span class="json-str">Topic</span>: Auth feature implementation
+- <span class="json-str">Accomplished</span>: Login page, API integration, session mgmt
+- <span class="json-str">Blockers</span>: None
+
+<span class="json-key">### Current State</span> (from ledger)
+- <span class="json-str">Active Work</span>: Writing tests for auth module
+- <span class="json-str">Key Decisions</span>: JWT with 1hr expiry, httpOnly cookies
+- <span class="json-str">Open Questions</span>: Refresh token strategy
+
+<span class="json-key">### Recommended Actions</span>
+1. Write unit tests for auth middleware
+2. Add refresh token endpoint
+3. Update API docs</pre>
+    </div>
+    <div class="wf-section">
+      <h4>Note: Automatic Context at Session Start</h4>
+      <p>The <code class="inline-code">session-loader</code> hook already loads a <strong>compact</strong> version of the ledger summary automatically at every session start. <code class="inline-code">/resume-session</code> provides the <strong>full</strong> context including handoff details &mdash; use it when you need the complete picture after a break.</p>
+    </div>
+  </div>
+
+  <div class="wf-detail" id="wf-detail-maintain">
+    <h3>&#128295; <code class="inline-code">/check-maintenance</code> + <code class="inline-code">/archive-ledger</code></h3>
+    <p>Periodic health checks and archival to keep the system lean and context-efficient.</p>
+
+    <div class="wf-section">
+      <h4>/check-maintenance &mdash; Health Dashboard</h4>
+      <table class="sec-table" style="margin-top:.5rem">
+        <thead><tr><th>Check</th><th style="color:var(--green)">Healthy</th><th style="color:var(--yellow)">Warning</th><th style="color:var(--red)">Action Needed</th></tr></thead>
+        <tbody>
+          <tr><td>Ledger size</td><td>&lt;500 lines</td><td>500-800 lines</td><td>&gt;800 lines</td></tr>
+          <tr><td>Handoff count</td><td>&lt;20 files</td><td>20-40 files</td><td>&gt;40 files</td></tr>
+          <tr><td>Shared context</td><td>&lt;50 KB</td><td>50-100 KB</td><td>&gt;100 KB</td></tr>
+          <tr><td>Last archive</td><td>&lt;30 days</td><td>30-60 days</td><td>&gt;60 days</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="wf-section">
+      <h4>/archive-ledger &mdash; Trim the Ledger</h4>
+      <ul>
+        <li>Moves "Done" items older than 4 weeks to <code class="inline-code">archive/ledger-YYYY-QQ.md</code></li>
+        <li>Archives Key Decisions older than 30 days</li>
+        <li>Keeps recent work and active decisions in the main ledger</li>
+        <li>Target: reduce to &lt;300 lines from 800+</li>
+      </ul>
+    </div>
+    <div class="wf-section">
+      <h4>Recommended Schedule</h4>
+      <div class="maint-grid">
+        <div class="maint-card"><div class="freq">Every 3-5 tasks</div><div class="cmd">/save-state</div><div class="when">Keep ledger current</div></div>
+        <div class="maint-card"><div class="freq">End of session</div><div class="cmd">/create-handoff</div><div class="when">Clean transition</div></div>
+        <div class="maint-card"><div class="freq">Weekly</div><div class="cmd">/check-maintenance</div><div class="when">Monitor health</div></div>
+        <div class="maint-card"><div class="freq">When &gt;500 lines</div><div class="cmd">/archive-ledger</div><div class="when">Keep it lean</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ledger anatomy -->
+  <div class="card" style="margin-top:1.5rem">
+    <h3 style="margin-bottom:.75rem">Ledger Anatomy &mdash; Click sections to see how each command interacts</h3>
+    <div class="ledger-anatomy" id="ledger-anatomy">
+      <div class="ledger-section" data-ls="header">
+        <div class="ls-header">
+          <span class="ls-title" style="color:var(--text2)"># Project Ledger: my-project</span>
+          <span class="ls-action" style="background:rgba(210,153,34,.12);color:var(--yellow)">/save-state updates timestamp</span>
+        </div>
+        <div class="ls-content">
+          <p>The header contains the project name, last-updated timestamp, current session description, and the model version (<code class="inline-code">Append-Until-Handoff v2.0</code>).</p>
+          <p><strong>/save-state</strong>: Updates the <code class="inline-code">&gt; Last updated:</code> and <code class="inline-code">&gt; Session:</code> lines.</p>
+        </div>
+      </div>
+      <div class="ledger-section" data-ls="now">
+        <div class="ls-header">
+          <span class="ls-title" style="color:var(--accent)">## Current State &rarr; ### Now</span>
+          <span class="ls-action" style="background:rgba(210,153,34,.12);color:var(--yellow)">REPLACED by /save-state</span>
+        </div>
+        <div class="ls-content">
+          <p>Snapshot of current focus: branch name, what you're working on, and build/test status.</p>
+          <p><strong>/save-state</strong>: Replaces entirely with current snapshot.<br>
+          <strong>/create-handoff</strong>: Resets to post-handoff snapshot.<br>
+          <strong>/resume-session</strong>: Reads first line as "status" for the compact summary.</p>
+        </div>
+      </div>
+      <div class="ledger-section" data-ls="done">
+        <div class="ls-header">
+          <span class="ls-title" style="color:var(--accent)">### Done (Recent)</span>
+          <span class="ls-action" style="background:rgba(210,153,34,.12);color:var(--yellow)">REPLACED (rolling 10)</span>
+        </div>
+        <div class="ls-content">
+          <p>Numbered list of recently completed work. Acts as a rolling window.</p>
+          <p><strong>/save-state</strong>: Replaces with last 10 items (rolling window).<br>
+          <strong>/create-handoff</strong>: Trims to last 5 items.<br>
+          <strong>/resume-session</strong>: Reads last numbered item as "recent" for the compact summary.</p>
+        </div>
+      </div>
+      <div class="ledger-section" data-ls="next">
+        <div class="ls-header">
+          <span class="ls-title" style="color:var(--accent)">### Next</span>
+          <span class="ls-action" style="background:rgba(210,153,34,.12);color:var(--yellow)">REPLACED</span>
+        </div>
+        <div class="ls-content">
+          <p>Bullet list of upcoming priorities.</p>
+          <p><strong>/save-state</strong>: Replaces with current priorities.<br>
+          <strong>/resume-session</strong>: Reads first bullet as "next" for the compact summary.</p>
+        </div>
+      </div>
+      <div class="ledger-section" data-ls="log">
+        <div class="ls-header">
+          <span class="ls-title" style="color:var(--green)">## Session Activity Log</span>
+          <span class="ls-action" style="background:rgba(63,185,80,.12);color:var(--green)">APPENDED by /save-state</span>
+        </div>
+        <div class="ls-content">
+          <p>Timestamped entries of work done. New entries are added at the <strong>top</strong>. Never modified or removed by /save-state.</p>
+          <p><strong>/save-state</strong>: Appends new entry at top.<br>
+          <strong>/create-handoff</strong>: Archives all entries to handoff YAML, then <strong>clears</strong> the section.<br>
+          <strong>pre-compact-saver</strong>: Appends a compaction timestamp marker.</p>
+        </div>
+      </div>
+      <div class="ledger-section" data-ls="decisions">
+        <div class="ls-header">
+          <span class="ls-title" style="color:var(--green)">## Key Decisions</span>
+          <span class="ls-action" style="background:rgba(63,185,80,.12);color:var(--green)">APPENDED by /save-state</span>
+        </div>
+        <div class="ls-content">
+          <p>Architectural and design decisions with reasoning. Never removed by /save-state &mdash; only by handoff/archive.</p>
+          <p><strong>/save-state</strong>: Appends new decisions (never removes existing).<br>
+          <strong>/create-handoff</strong>: Archives decisions older than 30 days to <code class="inline-code">archive/ledger-YYYY-QQ.md</code>.<br>
+          <strong>/archive-ledger</strong>: Same archival logic for decisions &gt;30 days old.</p>
+        </div>
+      </div>
+      <div class="ledger-section" data-ls="questions">
+        <div class="ls-header">
+          <span class="ls-title" style="color:var(--yellow)">## Open Questions</span>
+          <span class="ls-action" style="background:rgba(210,153,34,.12);color:var(--yellow)">REPLACED</span>
+        </div>
+        <div class="ls-content">
+          <p>Blocking and non-blocking questions. Replaced as a snapshot each time.</p>
+          <p><strong>/save-state</strong>: Replaces with current questions (blocking / non-blocking).<br>
+          <strong>/resume-session</strong>: Displays to help prioritize session work.</p>
+        </div>
+      </div>
+      <div class="ledger-section" data-ls="context">
+        <div class="ls-header">
+          <span class="ls-title" style="color:var(--text2)">## Context</span>
+          <span class="ls-action" style="background:rgba(139,148,158,.12);color:var(--text2)">Metadata</span>
+        </div>
+        <div class="ls-content">
+          <p>Branch info, coverage snapshots, and other metadata. Updated with /save-state.</p>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:1.5rem;margin-top:.75rem;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:.35rem;font-size:.75rem;color:var(--text2)"><span class="wf-indicator append"></span> APPEND (accumulates)</div>
+      <div style="display:flex;align-items:center;gap:.35rem;font-size:.75rem;color:var(--text2)"><span class="wf-indicator replace"></span> REPLACE (snapshot)</div>
+      <div style="display:flex;align-items:center;gap:.35rem;font-size:.75rem;color:var(--text2)"><span class="wf-indicator archive"></span> ARCHIVE (on handoff)</div>
+      <div style="display:flex;align-items:center;gap:.35rem;font-size:.75rem;color:var(--text2)"><span class="wf-indicator read"></span> READ (on resume)</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 2. HOOKS ===== -->
+<section class="panel" id="panel-hooks">
+  <h2><span style="color:var(--text3)">&#9881;</span> Hooks Deep Dive</h2>
+  <p>The plugin registers 6 hooks + 1 StatusLine script. Click any card to expand details.</p>
+
+  <div id="hooks-list"></div>
+</section>
+
+<!-- ===== 3. STATUSLINE ===== -->
+<section class="panel" id="panel-statusline">
+  <h2><span style="color:var(--cyan)">&#128214;</span> StatusLine</h2>
+  <p>A rich 2-line status bar shown after every assistant response. Not a hook &mdash; it's a standalone script that runs via Claude Code's StatusLine mechanism.</p>
+
+  <div class="card">
+    <h3>Live Preview</h3>
+    <p>Drag the slider to simulate different context usage levels.</p>
+    <div class="statusline-preview" id="sl-preview">
+      <div class="statusline-line" id="sl-line1"></div>
+      <div class="statusline-line" id="sl-line2"></div>
+    </div>
+    <div class="sl-slider">
+      <label>Context Window Usage: <strong id="sl-pct-label">45%</strong></label>
+      <input type="range" id="sl-slider" min="0" max="100" value="45">
+    </div>
+  </div>
+
+  <div class="two-col" style="margin-top:1rem">
+    <div class="card">
+      <h3>Progress Bar Colors</h3>
+      <div style="font-family:var(--mono);font-size:.85rem;line-height:2">
+        <div><span style="color:var(--green)">&#9608;&#9608;&#9608;&#9608;&#9608;&#9601;&#9601;&#9601;&#9601;&#9601;</span> <span style="color:var(--text3)">&lt;70% &mdash; Green (safe)</span></div>
+        <div><span style="color:var(--yellow)">&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9601;&#9601;&#9601;</span> <span style="color:var(--text3)">70-89% &mdash; Yellow (caution)</span></div>
+        <div><span style="color:var(--red)">&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9601;</span> <span style="color:var(--text3)">90%+ &mdash; Red (critical)</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Status Emojis</h3>
+      <div style="font-size:.85rem;line-height:2">
+        <div>&#10024; &mdash; Fresh (&lt;25%)</div>
+        <div>&#128077; &mdash; Good (25-49%)</div>
+        <div>&#9889; &mdash; Active (50-69%)</div>
+        <div>&#128293; &mdash; Hot (70%+)</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:1rem">
+    <h3>How It Works</h3>
+    <ul style="padding-left:1.2rem;font-size:.85rem;color:var(--text2)">
+      <li>Reads <code class="inline-code">context_window.used_percentage</code> from stdin JSON</li>
+      <li>Writes percentage to <code class="inline-code">/tmp/claude-context-pct-{sessionId}.txt</code> (read by context-monitor hook)</li>
+      <li>Caches git branch for 5 seconds to avoid repeated shell calls</li>
+      <li>Outputs 2 lines to stdout using ANSI color codes</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ===== 4. DATA FLOW ===== -->
+<section class="panel" id="panel-dataflow">
+  <h2><span style="color:var(--cyan)">&#128214;</span> Data Flow</h2>
+  <p><code class="inline-code">shared-context.json</code> is the central state hub. Each hook reads and/or writes specific fields.</p>
+
+  <div class="card">
+    <h3 style="text-align:center;margin-bottom:1.25rem">shared-context.json &mdash; Central Hub</h3>
+
+    <div class="flow-diagram">
+      <div class="flow-row">
+        <div class="flow-node" style="border-color:var(--green)">session-loader</div>
+        <div class="flow-arrow">&xrarr;</div>
+        <div class="flow-node central">shared-context.json</div>
+        <div class="flow-label">Writes: session_heartbeat (start, was_cleanly_ended=false), resets dirty_tracking</div>
+      </div>
+      <div class="flow-row">
+        <div class="flow-node" style="border-color:var(--cyan)">dirty-state-tracker</div>
+        <div class="flow-arrow">&xrarr;</div>
+        <div class="flow-node central">shared-context.json</div>
+        <div class="flow-label">Writes: files_edited_count++, appends to files_edited_this_session[], updates last_activity</div>
+      </div>
+      <div class="flow-row">
+        <div class="flow-node" style="border-color:var(--red)">session-end</div>
+        <div class="flow-arrow">&xrarr;</div>
+        <div class="flow-node central">shared-context.json</div>
+        <div class="flow-label">Writes: was_cleanly_ended=true, updates last_activity</div>
+      </div>
+      <div class="flow-row" style="margin-top:.5rem;padding-top:.75rem;border-top:1px dashed var(--border)">
+        <div class="flow-node" style="border-color:var(--yellow)">context-monitor</div>
+        <div class="flow-arrow">&xlarr;</div>
+        <div class="flow-node" style="border-color:var(--orange)">/tmp/claude-context-pct-*.txt</div>
+        <div class="flow-label">Reads context % written by StatusLine (NOT from shared-context.json)</div>
+      </div>
+      <div class="flow-row">
+        <div class="flow-node" style="border-color:var(--purple)">pre-compact-saver</div>
+        <div class="flow-arrow">&xrarr;</div>
+        <div class="flow-node" style="border-color:var(--accent)">ledger .md</div>
+        <div class="flow-label">Appends compaction timestamp marker to ledger file (NOT shared-context.json)</div>
+      </div>
+      <div class="flow-row">
+        <div class="flow-node" style="border-color:var(--orange)">StatusLine</div>
+        <div class="flow-arrow">&xrarr;</div>
+        <div class="flow-node" style="border-color:var(--orange)">/tmp/claude-context-pct-*.txt</div>
+        <div class="flow-label">Writes percentage for context-monitor to read</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:1rem">
+    <h3>Locking Protocol</h3>
+    <p>All writers use <code class="inline-code">mkdir</code>-based locking (POSIX atomic) to prevent race conditions.</p>
+    <pre><span class="json-comment">// Lock path: shared-context.json.lock (directory)</span>
+<span class="json-key">acquireLock</span>(lockPath, maxAttempts)  <span class="json-comment">// mkdir, retry with 100ms delay</span>
+  <span class="json-comment">// ... critical section: read → modify → write ...</span>
+<span class="json-key">releaseLock</span>(lockPath)               <span class="json-comment">// rmSync -r</span>
+
+<span class="json-comment">// Timeouts:</span>
+<span class="json-comment">//   session-loader:       50 attempts × 100ms = 5s max</span>
+<span class="json-comment">//   dirty-state-tracker:  50 attempts × 100ms = 5s max</span>
+<span class="json-comment">//   session-end:          20 attempts × 100ms = 2s max</span></pre>
+  </div>
+</section>
+
+<!-- ===== 5. FILE STRUCTURE ===== -->
+<section class="panel" id="panel-files">
+  <h2><span style="color:var(--cyan)">&#128214;</span> File Structure</h2>
+  <p>The continuity system creates this structure inside your project. Click any item for details.</p>
+
+  <div class="card">
+    <div class="file-tree" id="file-tree"></div>
+  </div>
+</section>
+
+<!-- ===== 6. JSON PROTOCOL ===== -->
+<section class="panel" id="panel-protocol">
+  <h2><span style="color:var(--text3)">&#9881;</span> JSON Protocol</h2>
+  <p>Every hook communicates via stdin (JSON in) &rarr; stdout (JSON out). The exit code determines behavior: <code class="inline-code">0</code> = continue, <code class="inline-code">1</code> = blocked.</p>
+
+  <div class="proto-tabs" id="proto-tabs">
+    <div class="proto-tab active" data-proto="pretool-allow">PreToolUse (Allow)</div>
+    <div class="proto-tab" data-proto="pretool-deny">PreToolUse (Deny)</div>
+    <div class="proto-tab" data-proto="session-start">SessionStart</div>
+    <div class="proto-tab" data-proto="prompt-submit">UserPromptSubmit</div>
+  </div>
+  <div id="proto-panels"></div>
+</section>
+
+<!-- ===== 7. SECURITY ===== -->
+<section class="panel" id="panel-security">
+  <h2><span style="color:var(--red)">&#128737;</span> Security Patterns</h2>
+  <p>The <code class="inline-code">pretool/security-blocker</code> hook blocks writes to sensitive paths and dangerous shell commands. It <strong>cannot be disabled</strong> via hook-overrides.json.</p>
+
+  <div class="sec-filter" id="sec-filter">
+    <button class="active" data-cat="all">All</button>
+    <button data-cat="env">Environment</button>
+    <button data-cat="git">Git</button>
+    <button data-cat="ssh">SSH Keys</button>
+    <button data-cat="cred">Credentials</button>
+    <button data-cat="sys">System Dirs</button>
+    <button data-cat="bash">Dangerous Bash</button>
+  </div>
+
+  <div class="card" style="padding:0;overflow:auto">
+    <table class="sec-table" id="sec-table">
+      <thead><tr><th>Category</th><th>Pattern</th><th>Blocked Tool(s)</th><th>Reason</th></tr></thead>
+      <tbody id="sec-tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="card" style="margin-top:1rem">
+    <h3>Symlink Security (ME-001)</h3>
+    <p>The blocker resolves symlinks to prevent bypass attacks:</p>
+    <pre><span class="json-comment">// Attack: symlink inside project → /etc/passwd</span>
+<span class="json-comment">//   project/link.txt → /etc/passwd</span>
+<span class="json-comment">//   Write tool targets "project/link.txt" (looks safe)</span>
+<span class="json-comment">//   Resolved path = /etc/passwd → BLOCKED</span>
+
+<span class="json-key">Algorithm:</span>
+1. Normalize path (remove ./, collapse //)
+2. Check for path traversal (.. remaining = escape attempt)
+3. Resolve symlinks via <span class="json-str">fs.realpathSync</span>
+4. Check <span class="json-key">BOTH</span> normalized AND resolved paths against patterns
+5. Either match = <span style="color:var(--red)">DENY</span></pre>
+  </div>
+</section>
+
+<!-- ===== 8. PROVIDERS ===== -->
+<section class="panel" id="panel-providers">
+  <h2><span style="color:var(--text3)">&#9881;</span> Provider Compatibility</h2>
+  <p>The plugin is <strong>provider-agnostic</strong>. It operates at the hooks layer (local filesystem only) and never makes API calls. All hooks work identically regardless of provider.</p>
+
+  <div class="provider-grid">
+    <div class="provider-card">
+      <div class="provider-icon">&#9729;&#65039;</div>
+      <h3>Anthropic</h3>
+      <p style="font-size:.82rem;color:var(--text2)">Direct API (default)</p>
+      <div class="env-var">No env var needed</div>
+    </div>
+    <div class="provider-card">
+      <div class="provider-icon">&#9889;</div>
+      <h3>AWS Bedrock</h3>
+      <p style="font-size:.82rem;color:var(--text2)">Amazon Bedrock runtime</p>
+      <div class="env-var">CLAUDE_CODE_USE_BEDROCK=1</div>
+    </div>
+    <div class="provider-card">
+      <div class="provider-icon">&#9651;</div>
+      <h3>Google Vertex</h3>
+      <p style="font-size:.82rem;color:var(--text2)">Vertex AI runtime</p>
+      <div class="env-var">CLAUDE_CODE_USE_VERTEX=1</div>
+    </div>
+    <div class="provider-card">
+      <div class="provider-icon">&#11044;</div>
+      <h3>Azure Foundry</h3>
+      <p style="font-size:.82rem;color:var(--text2)">Azure AI Foundry runtime</p>
+      <div class="env-var">CLAUDE_CODE_USE_AZURE=1</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:1.5rem">
+    <h3>Why It Works Everywhere</h3>
+    <pre><span class="json-comment">// The plugin ONLY uses:</span>
+<span class="json-comment">//   - stdin  (JSON from Claude Code — same format for all providers)</span>
+<span class="json-comment">//   - stdout (JSON back to Claude Code — same format for all providers)</span>
+<span class="json-comment">//   - Local filesystem (.claude/, /tmp/, ~/.claude/logs/)</span>
+<span class="json-comment">//</span>
+<span class="json-comment">// The plugin NEVER:</span>
+<span class="json-comment">//   - Makes API calls</span>
+<span class="json-comment">//   - Reads API keys</span>
+<span class="json-comment">//   - Interacts with the model directly</span>
+<span class="json-comment">//   - Branches behavior based on provider (logging only)</span>
+
+<span class="json-key">function</span> getProviderInfo(): ProviderInfo {
+  <span class="json-comment">// Detection is for logging/debugging only</span>
+  <span class="json-key">if</span> (process.env[<span class="json-str">'CLAUDE_CODE_USE_BEDROCK'</span>] === <span class="json-str">'1'</span>)
+    <span class="json-key">return</span> { provider: <span class="json-str">'bedrock'</span>, ... };
+  <span class="json-key">if</span> (process.env[<span class="json-str">'CLAUDE_CODE_USE_VERTEX'</span>] === <span class="json-str">'1'</span>)
+    <span class="json-key">return</span> { provider: <span class="json-str">'vertex'</span>, ... };
+  <span class="json-key">if</span> (process.env[<span class="json-str">'CLAUDE_CODE_USE_AZURE'</span>] === <span class="json-str">'1'</span>)
+    <span class="json-key">return</span> { provider: <span class="json-str">'foundry'</span>, ... };
+  <span class="json-key">return</span> { provider: <span class="json-str">'anthropic'</span>, ... };
+}</pre>
+  </div>
+</section>
+
+</main>
+
+<!-- Prompt output bar -->
+<div class="prompt-output" id="prompt-output">
+  <div class="prompt-bar">
+    <span class="label">Prompt</span>
+    <span class="prompt-text" id="prompt-text"></span>
+    <button class="copy-btn" id="copy-btn">Copy</button>
+  </div>
+</div>
+
+</div>
+
+<script>
+// =============================================================================
+// TAB NAVIGATION
+// =============================================================================
+const tabs = document.querySelectorAll('.tab');
+const panels = document.querySelectorAll('.panel');
+
+function switchTab(panelId) {
+  tabs.forEach(t => t.classList.remove('active'));
+  panels.forEach(p => p.classList.remove('active'));
+  const tab = document.querySelector(`.tab[data-panel="${panelId}"]`);
+  if (tab) tab.classList.add('active');
+  const panel = document.getElementById('panel-' + panelId);
+  if (panel) panel.classList.add('active');
+}
+
+tabs.forEach(tab => {
+  tab.addEventListener('click', () => switchTab(tab.dataset.panel));
+});
+
+// =============================================================================
+// WORKFLOW TAB
+// =============================================================================
+const wfSteps = document.querySelectorAll('.wf-step');
+const wfDetails = document.querySelectorAll('.wf-detail');
+
+wfSteps.forEach(step => {
+  step.addEventListener('click', () => {
+    const id = step.dataset.wf;
+    // Toggle step highlight
+    wfSteps.forEach(s => s.querySelector('.wf-step-inner').classList.remove('active-step'));
+    step.querySelector('.wf-step-inner').classList.add('active-step');
+    // Show matching detail
+    wfDetails.forEach(d => d.classList.remove('visible'));
+    const detail = document.getElementById('wf-detail-' + id);
+    if (detail) detail.classList.add('visible');
+  });
+});
+
+// Show "develop" by default
+document.querySelector('[data-wf="develop"] .wf-step-inner').classList.add('active-step');
+
+// Ledger size threshold slider
+const wfSlider = document.getElementById('wf-ledger-slider');
+const wfLines = document.getElementById('wf-ledger-lines');
+const wfFill = document.getElementById('wf-threshold-fill');
+const wfMsg = document.getElementById('wf-threshold-msg');
+
+function updateThreshold() {
+  const val = parseInt(wfSlider.value);
+  const pct = Math.min(val / 10, 100);
+  wfLines.textContent = val + ' lines';
+  wfFill.style.width = pct + '%';
+  if (val >= 800) {
+    wfFill.style.background = 'var(--red)';
+    wfMsg.innerHTML = '<span style="color:var(--red)">&#128308; Urgent &mdash; Run <code class="inline-code">/create-handoff</code> or <code class="inline-code">/archive-ledger</code> immediately.</span>';
+  } else if (val >= 500) {
+    wfFill.style.background = 'var(--yellow)';
+    wfMsg.innerHTML = '<span style="color:var(--yellow)">&#9888;&#65039; Warning &mdash; Consider <code class="inline-code">/create-handoff</code> to clean up.</span>';
+  } else {
+    wfFill.style.background = 'var(--green)';
+    wfMsg.innerHTML = '<span style="color:var(--green)">&#9989; Healthy &mdash; Ledger is lean and context-efficient.</span>';
+  }
+}
+if (wfSlider) {
+  wfSlider.addEventListener('input', updateThreshold);
+  updateThreshold();
+}
+
+// Ledger anatomy interactive sections
+document.querySelectorAll('.ledger-section').forEach(section => {
+  section.addEventListener('click', () => {
+    const wasActive = section.classList.contains('ls-active');
+    document.querySelectorAll('.ledger-section').forEach(s => s.classList.remove('ls-active'));
+    if (!wasActive) section.classList.add('ls-active');
+  });
+});
+
+// =============================================================================
+// HOOKS DEEP DIVE
+// =============================================================================
+const hooksData = [
+  {
+    name: 'lifecycle/session-loader',
+    event: 'SessionStart',
+    badge: 'badge-green',
+    desc: 'Initializes session context and checks for stale sessions.',
+    details: `<h4>What it does</h4>
+<ul>
+<li>Creates <code class="inline-code">.claude/continuity/</code> directory structure (ledgers, handoffs, archive, learnings, context)</li>
+<li>Creates default ledger (<code class="inline-code">CONTINUITY_project-name.md</code>) if none exists</li>
+<li>Creates <code class="inline-code">shared-context.json</code> with default values</li>
+<li>Checks <code class="inline-code">was_cleanly_ended</code> flag &mdash; warns if previous session crashed</li>
+<li>Resets dirty tracking: <code class="inline-code">files_edited_count=0</code>, <code class="inline-code">files_edited_this_session=[]</code></li>
+<li>Sets <code class="inline-code">was_cleanly_ended=false</code> (will be set true by session-end)</li>
+<li>Extracts compact ledger summary (status, recent work, next steps)</li>
+<li>Detects git branch via <code class="inline-code">git branch --show-current</code></li>
+<li>Writes env vars to <code class="inline-code">CLAUDE_ENV_FILE</code> if available</li>
+</ul>
+<h4>Output</h4>
+<pre>{"continue": true, "systemMessage": "=== SESSION CONTEXT ===\\n\\n..."}</pre>
+<h4>Lock</h4>
+<p>50 attempts &times; 100ms = 5 second max wait on <code class="inline-code">shared-context.json.lock</code></p>`
+  },
+  {
+    name: 'lifecycle/session-end',
+    event: 'SessionEnd',
+    badge: 'badge-red',
+    desc: 'Marks session as cleanly ended to prevent stale session warnings.',
+    details: `<h4>What it does</h4>
+<ul>
+<li>Sets <code class="inline-code">session_heartbeat.was_cleanly_ended = true</code></li>
+<li>Updates <code class="inline-code">session_heartbeat.last_activity</code> with current timestamp</li>
+<li>Always returns silently (cannot block session exit)</li>
+</ul>
+<h4>Output</h4>
+<pre>{"continue": true, "suppressOutput": true}</pre>
+<h4>Lock</h4>
+<p>20 attempts &times; 100ms = 2 second max wait (shorter because session is ending)</p>`
+  },
+  {
+    name: 'lifecycle/pre-compact-saver',
+    event: 'PreCompact',
+    badge: 'badge-purple',
+    desc: 'Preserves a timestamp in the ledger before context compaction.',
+    details: `<h4>What it does</h4>
+<ul>
+<li>Finds current ledger via <code class="inline-code">getCurrentLedgerPath()</code></li>
+<li>Appends marker: <code class="inline-code">---\\n**Auto-saved before compaction**: 2026-03-01T12:00:00Z\\n</code></li>
+<li>Warns if no ledger file exists</li>
+</ul>
+<h4>Output (success)</h4>
+<pre>{"continue": true, "systemMessage": "State preserved in ledger before compaction"}</pre>
+<h4>Output (no ledger)</h4>
+<pre>{"continue": true, "systemMessage": "Warning: Ledger not found - state not preserved..."}</pre>`
+  },
+  {
+    name: 'pretool/security-blocker',
+    event: 'PreToolUse',
+    badge: 'badge-red',
+    desc: 'Validates tool calls against security rules. Cannot be disabled.',
+    details: `<h4>Key Properties</h4>
+<ul>
+<li><strong>Cannot be disabled</strong> via <code class="inline-code">hook-overrides.json</code> (hardcoded in NON_DISABLEABLE_HOOKS)</li>
+<li>Checks Bash commands against dangerous patterns (rm -rf, fork bombs, env dumps)</li>
+<li>Checks Write/Edit/MultiEdit file paths against protected patterns</li>
+<li>Resolves symlinks to prevent bypass attacks (ME-001 fix)</li>
+<li>Validates EACH file in MultiEdit's <code class="inline-code">edits[]</code> array</li>
+<li>Warns when <code class="inline-code">dangerouslyDisableSandbox=true</code></li>
+<li>Logs all decisions to <code class="inline-code">~/.claude/logs/continuity/permission-feedback.log</code></li>
+</ul>
+<h4>Output (allowed)</h4>
+<pre>{"continue": true, "suppressOutput": true}</pre>
+<h4>Output (blocked)</h4>
+<pre>{"continue": false, "stopReason": "Blocked: write to protected path .env",
+ "hookSpecificOutput": {"permissionDecision": "deny", ...}}</pre>`
+  },
+  {
+    name: 'posttool/dirty-state-tracker',
+    event: 'PostToolUse',
+    badge: 'badge-cyan',
+    desc: 'Tracks unique file edits and warns at configurable thresholds.',
+    details: `<h4>What it does</h4>
+<ul>
+<li>Only runs for <strong>Write</strong> and <strong>Edit</strong> tools (ignores all others)</li>
+<li>Deduplicates: editing the same file 10 times = count of <strong>1</strong></li>
+<li>Increments <code class="inline-code">files_edited_count</code> only for <em>new</em> files</li>
+<li>Appends full path to <code class="inline-code">files_edited_this_session[]</code></li>
+<li>Updates <code class="inline-code">last_edit_timestamp</code> and <code class="inline-code">session_heartbeat.last_activity</code></li>
+<li>Atomic writes: writes to <code class="inline-code">.tmp</code> then <code class="inline-code">rename</code> (POSIX atomic)</li>
+</ul>
+<h4>Thresholds</h4>
+<ul>
+<li><strong>15 files</strong>: "Will suggest handoff at 25 files"</li>
+<li><strong>25 files</strong>: "Consider running <code class="inline-code">/create-handoff</code>"</li>
+</ul>
+<h4>Lock</h4>
+<p>50 attempts &times; 100ms = 5 second max wait</p>`
+  },
+  {
+    name: 'prompt/context-monitor',
+    event: 'UserPromptSubmit',
+    badge: 'badge-yellow',
+    desc: 'Injects context window usage warnings to Claude (invisible to user).',
+    details: `<h4>What it does</h4>
+<ul>
+<li>Reads context % from <code class="inline-code">/tmp/claude-context-pct-{sessionId}.txt</code> (written by StatusLine)</li>
+<li>Determines tier: 0 (&lt;70%), 1 (70-79%), 2 (80-89%), 3 (90%+)</li>
+<li>Rate-limited: only warns when tier <em>increases</em> above last emitted tier</li>
+<li>Resets when context drops below 70% (after compaction)</li>
+<li>Warning is injected as <code class="inline-code">additionalContext</code> &mdash; visible to Claude, not the user</li>
+</ul>
+<h4>Tier Messages</h4>
+<ul>
+<li><strong>Tier 1 (70%)</strong>: Advisory &mdash; "Consider /create-handoff when at stopping point"</li>
+<li><strong>Tier 2 (80%)</strong>: Warning &mdash; "Recommend /create-handoff then /clear soon"</li>
+<li><strong>Tier 3 (90%+)</strong>: Critical &mdash; "Run /create-handoff NOW, then /clear"</li>
+</ul>
+<h4>State Files</h4>
+<ul>
+<li>Reads: <code class="inline-code">/tmp/claude-context-pct-{sessionId}.txt</code></li>
+<li>Reads/writes: <code class="inline-code">/tmp/claude-context-last-warn-{sessionId}.txt</code> (last tier emitted)</li>
+</ul>`
+  }
+];
+
+const hooksList = document.getElementById('hooks-list');
+hooksData.forEach(h => {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = `
+    <div class="card-header">
+      <h3><code style="color:var(--cyan)">${h.name}</code> <span class="badge-sm ${h.badge}">${h.event}</span></h3>
+      <span class="chevron">&#9654;</span>
+    </div>
+    <p style="margin-top:.35rem;font-size:.82rem;color:var(--text2)">${h.desc}</p>
+    <div class="card-body"><div style="padding-top:.75rem">${h.details}</div></div>
+  `;
+  card.querySelector('.card-header').addEventListener('click', () => card.classList.toggle('open'));
+  hooksList.appendChild(card);
+});
+
+// =============================================================================
+// STATUSLINE PREVIEW
+// =============================================================================
+const slSlider = document.getElementById('sl-slider');
+const slLine1 = document.getElementById('sl-line1');
+const slLine2 = document.getElementById('sl-line2');
+const slLabel = document.getElementById('sl-pct-label');
+
+function renderStatusLine(pct) {
+  slLabel.textContent = pct + '%';
+  slLine1.innerHTML = `<span class="sl-dim">[claude-opus]</span> <span class="sl-cyan">\u{1F4C1} my-project</span> <span class="sl-dim">|</span> <span class="sl-green">\u{1F33F} main</span>`;
+
+  const filled = Math.round(pct / 10);
+  const empty = 10 - filled;
+  const colorClass = pct >= 90 ? 'sl-red' : pct >= 70 ? 'sl-yellow' : 'sl-green';
+  const emoji = pct < 25 ? '\u2728' : pct < 50 ? '\u{1F44D}' : pct < 70 ? '\u26A1' : '\u{1F525}';
+  const bar = `<span class="${colorClass}">${'\u2588'.repeat(filled)}${'\u2591'.repeat(empty)}</span>`;
+  const cost = (pct * 0.008).toFixed(2);
+  const mins = Math.round(pct * 0.4);
+  const duration = mins >= 60 ? `${Math.floor(mins/60)}h ${mins%60}m` : `${mins}m`;
+
+  slLine2.innerHTML = `${bar} <span class="${colorClass}">${pct}%</span> ${emoji} <span class="sl-dim">|</span> <span class="sl-dim">$${cost}</span> <span class="sl-dim">|</span> <span class="sl-dim">\u23F1\uFE0F ${duration}</span>`;
+}
+
+slSlider.addEventListener('input', () => renderStatusLine(parseInt(slSlider.value)));
+renderStatusLine(45);
+
+// =============================================================================
+// FILE STRUCTURE
+// =============================================================================
+const fileTreeData = [
+  { type:'dir', name:'.claude/', indent:0, id:'claude', detail:'Root directory for all Claude Code configuration and plugin data.' },
+  { type:'dir', name:'continuity/', indent:1, id:'continuity', detail:'Session continuity system. Managed by the plugin hooks.' },
+  { type:'dir', name:'ledgers/', indent:2, id:'ledgers', detail:'Contains the project ledger (CONTINUITY_project-name.md). This is the human-readable project state file with sections: Current State, Session Activity Log, Key Decisions, Open Questions, and Context.' },
+  { type:'file', name:'CONTINUITY_my-project.md', indent:3, id:'ledger-file', detail:'The active ledger. Updated by /save-state. Sections: ### Now (current status), ### Done (Recent) (numbered completed items), ### Next (bullet priorities). The extractLedgerSummary() parser reads these sections to produce compact context at session start.' },
+  { type:'file', name:'.gitkeep', indent:3, id:'', detail:'' },
+  { type:'dir', name:'handoffs/', indent:2, id:'handoffs', detail:'Session handoff documents created by /create-handoff. Captures session context for seamless continuation. Most recently modified .md or .yaml file is used by /resume-session.' },
+  { type:'file', name:'.gitkeep', indent:3, id:'', detail:'' },
+  { type:'dir', name:'archive/', indent:2, id:'archive', detail:'Archived content from /archive-ledger. Old "Done" items and decisions older than 30 days are moved here to keep the main ledger under 500 lines.' },
+  { type:'file', name:'.gitkeep', indent:3, id:'', detail:'' },
+  { type:'dir', name:'learnings/', indent:2, id:'learnings', detail:'Extracted patterns and learnings from past sessions. Referenced in shared-context.json as learnings_file.' },
+  { type:'file', name:'.gitkeep', indent:3, id:'', detail:'' },
+  { type:'dir', name:'context/', indent:1, id:'context', detail:'Shared context directory for machine-readable session state.' },
+  { type:'file', name:'shared-context.json', indent:2, id:'shared-context', detail:'Central state hub. Contains: session_heartbeat (was_cleanly_ended, last_activity), dirty_tracking (files_edited_count, files_edited_this_session[], thresholds), continuity metadata (current_ledger path), and retention settings. Read/written by session-loader, dirty-state-tracker, and session-end hooks via atomic locking.' },
+  { type:'file', name:'hook-overrides.json', indent:1, id:'overrides', detail:'Optional. Allows disabling specific hooks per-project. Format: {"disabled":["posttool/dirty-state-tracker"]}. IMPORTANT: pretool/security-blocker cannot be disabled — it is in the NON_DISABLEABLE_HOOKS set.' },
+];
+
+const fileTree = document.getElementById('file-tree');
+fileTreeData.forEach(item => {
+  const pad = '  '.repeat(item.indent);
+  const prefix = item.indent > 0 ? (item.type === 'dir' ? '\u251C\u2500\u2500 ' : '\u251C\u2500\u2500 ') : '';
+  const el = document.createElement('div');
+  const cls = item.type === 'dir' ? 'dir' : 'file';
+  el.innerHTML = `<span style="color:var(--text3)">${pad}${prefix}</span><span class="${cls}" ${item.id ? `data-tree-id="${item.id}"` : ''}>${item.name}</span>`;
+  fileTree.appendChild(el);
+
+  if (item.detail && item.id) {
+    const detailEl = document.createElement('div');
+    detailEl.className = 'tree-detail';
+    detailEl.id = 'tree-detail-' + item.id;
+    detailEl.style.marginLeft = (item.indent * 18 + 24) + 'px';
+    detailEl.textContent = item.detail;
+    fileTree.appendChild(detailEl);
+
+    el.querySelector(`[data-tree-id]`).addEventListener('click', () => {
+      detailEl.classList.toggle('open');
+    });
+  }
+});
+
+// =============================================================================
+// JSON PROTOCOL
+// =============================================================================
+const protoData = {
+  'pretool-allow': {
+    stdinLabel: 'Claude Code sends tool call to hook',
+    stdoutLabel: 'Hook allows the operation',
+    stdin: `{
+  <span class="json-key">"tool_name"</span>: <span class="json-str">"Write"</span>,
+  <span class="json-key">"tool_input"</span>: {
+    <span class="json-key">"file_path"</span>: <span class="json-str">"/home/user/project/src/app.ts"</span>,
+    <span class="json-key">"content"</span>: <span class="json-str">"export function main() { ... }"</span>
+  },
+  <span class="json-key">"session_id"</span>: <span class="json-str">"abc-123"</span>,
+  <span class="json-key">"tool_use_id"</span>: <span class="json-str">"xyz-789"</span>
+}`,
+    stdout: `{
+  <span class="json-key">"continue"</span>: <span class="json-bool">true</span>,
+  <span class="json-key">"suppressOutput"</span>: <span class="json-bool">true</span>
+}
+<span class="json-comment">// Exit code: 0 (tool proceeds)</span>`
+  },
+  'pretool-deny': {
+    stdinLabel: 'Claude Code sends dangerous tool call',
+    stdoutLabel: 'Hook blocks the operation',
+    stdin: `{
+  <span class="json-key">"tool_name"</span>: <span class="json-str">"Write"</span>,
+  <span class="json-key">"tool_input"</span>: {
+    <span class="json-key">"file_path"</span>: <span class="json-str">"/home/user/project/.env"</span>,
+    <span class="json-key">"content"</span>: <span class="json-str">"API_KEY=sk-..."</span>
+  },
+  <span class="json-key">"session_id"</span>: <span class="json-str">"abc-123"</span>
+}`,
+    stdout: `{
+  <span class="json-key">"continue"</span>: <span class="json-bool">false</span>,
+  <span class="json-key">"stopReason"</span>: <span class="json-str">"Blocked: write to protected environment file .env"</span>,
+  <span class="json-key">"hookSpecificOutput"</span>: {
+    <span class="json-key">"hookEventName"</span>: <span class="json-str">"PreToolUse"</span>,
+    <span class="json-key">"permissionDecision"</span>: <span class="json-str">"deny"</span>,
+    <span class="json-key">"permissionDecisionReason"</span>: <span class="json-str">"Protected environment file"</span>
+  }
+}
+<span class="json-comment">// Exit code: 0 (hook completed, but continue=false blocks tool)</span>`
+  },
+  'session-start': {
+    stdinLabel: 'Claude Code fires SessionStart event',
+    stdoutLabel: 'Hook returns session context',
+    stdin: `{
+  <span class="json-key">"hook_event_name"</span>: <span class="json-str">"SessionStart"</span>,
+  <span class="json-key">"source"</span>: <span class="json-str">"startup"</span>,
+  <span class="json-key">"session_id"</span>: <span class="json-str">"abc-123"</span>,
+  <span class="json-key">"model"</span>: <span class="json-str">"claude-opus-4"</span>,
+  <span class="json-key">"cwd"</span>: <span class="json-str">"/home/user/project"</span>,
+  <span class="json-key">"transcript_path"</span>: <span class="json-str">"/tmp/claude-transcript-abc.json"</span>
+}`,
+    stdout: `{
+  <span class="json-key">"continue"</span>: <span class="json-bool">true</span>,
+  <span class="json-key">"systemMessage"</span>: <span class="json-str">"=== SESSION CONTEXT ===\\n\\nBranch: main\\nStatus: Branch: \`main\`\\nRecent: Fixed auth bug\\nNext: Write tests\\n---\\nRun \`/resume-session\` for full context."</span>
+}
+<span class="json-comment">// systemMessage is shown to the user and injected into Claude's context</span>`
+  },
+  'prompt-submit': {
+    stdinLabel: 'User submits a prompt',
+    stdoutLabel: 'Hook injects context warning (invisible to user)',
+    stdin: `{
+  <span class="json-key">"hook_event_name"</span>: <span class="json-str">"UserPromptSubmit"</span>,
+  <span class="json-key">"session_id"</span>: <span class="json-str">"abc-123"</span>
+}`,
+    stdout: `{
+  <span class="json-key">"continue"</span>: <span class="json-bool">true</span>,
+  <span class="json-key">"suppressOutput"</span>: <span class="json-bool">true</span>,
+  <span class="json-key">"hookSpecificOutput"</span>: {
+    <span class="json-key">"hookEventName"</span>: <span class="json-str">"UserPromptSubmit"</span>,
+    <span class="json-key">"additionalContext"</span>: <span class="json-str">"CONTEXT WARNING: 80% used. Recommend /create-handoff then /clear soon."</span>
+  }
+}
+<span class="json-comment">// additionalContext is visible to Claude but NOT shown to the user</span>
+<span class="json-comment">// This allows the hook to influence Claude's behavior silently</span>`
+  }
+};
+
+const protoPanels = document.getElementById('proto-panels');
+Object.entries(protoData).forEach(([key, data]) => {
+  const panel = document.createElement('div');
+  panel.className = 'proto-panel' + (key === 'pretool-allow' ? ' active' : '');
+  panel.id = 'proto-' + key;
+  panel.innerHTML = `
+    <div class="proto-direction">
+      <span class="label stdin">stdin</span>
+      <span style="font-size:.8rem;color:var(--text2)">${data.stdinLabel}</span>
+    </div>
+    <pre>${data.stdin}</pre>
+    <div class="proto-direction" style="margin-top:1rem">
+      <span class="label stdout">stdout</span>
+      <span style="font-size:.8rem;color:var(--text2)">${data.stdoutLabel}</span>
+    </div>
+    <pre>${data.stdout}</pre>
+  `;
+  protoPanels.appendChild(panel);
+});
+
+document.querySelectorAll('.proto-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.proto-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.proto-panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('proto-' + tab.dataset.proto).classList.add('active');
+  });
+});
+
+// =============================================================================
+// SECURITY PATTERNS TABLE
+// =============================================================================
+const secPatterns = [
+  { cat:'env', pattern:'.env, .env.*, .envrc, .env_*, .env-*', tools:'Write, Edit, MultiEdit', reason:'Contains secret API keys, database passwords, and tokens' },
+  { cat:'git', pattern:'.git/, .gitconfig', tools:'Write, Edit, MultiEdit', reason:'Git internals — corruption could destroy repository history' },
+  { cat:'ssh', pattern:'.ssh/id_*, .ssh/*.pem, .ssh/*_rsa, .ssh/*_dsa, .ssh/*_ed25519, .ssh/*_ecdsa', tools:'Write, Edit, MultiEdit', reason:'Private SSH keys — exposure enables unauthorized server access' },
+  { cat:'ssh', pattern:'.ssh/known_hosts, .ssh/authorized_keys', tools:'Write, Edit, MultiEdit', reason:'SSH trust configuration — modification enables MITM or unauthorized access' },
+  { cat:'cred', pattern:'.aws/credentials', tools:'Write, Edit, MultiEdit', reason:'AWS access keys and secret keys' },
+  { cat:'cred', pattern:'.npmrc, .pypirc, .netrc', tools:'Write, Edit, MultiEdit', reason:'Package registry authentication tokens' },
+  { cat:'cred', pattern:'secrets.yaml, credentials.json', tools:'Write, Edit, MultiEdit', reason:'Application secrets and service account credentials' },
+  { cat:'cred', pattern:'.pgpass, .kube/config, .docker/config.json', tools:'Write, Edit, MultiEdit', reason:'Database, Kubernetes, and container registry credentials' },
+  { cat:'sys', pattern:'/etc/, /usr/, /var/', tools:'Write, Edit, MultiEdit', reason:'System configuration — modification requires root and can break the OS' },
+  { cat:'sys', pattern:'/sys/, /proc/, /boot/, /root/', tools:'Write, Edit, MultiEdit', reason:'Kernel interfaces and boot configuration — extremely dangerous to modify' },
+  { cat:'sys', pattern:'/private/etc/, /private/var/ (macOS)', tools:'Write, Edit, MultiEdit', reason:'macOS system directories (canonical paths for /etc and /var)' },
+  { cat:'bash', pattern:'rm -rf / , rm -rf ~', tools:'Bash', reason:'Recursive deletion of filesystem root or home directory' },
+  { cat:'bash', pattern:'dd of=/dev/*, mkfs.*, format /dev/*', tools:'Bash', reason:'Direct disk writes and filesystem formatting — irreversible data loss' },
+  { cat:'bash', pattern:':(){ :|:& };: (fork bomb)', tools:'Bash', reason:'Exponential process spawning — crashes the system' },
+  { cat:'bash', pattern:'> /dev/sda (device write)', tools:'Bash', reason:'Direct write to block device — destroys partition table and data' },
+  { cat:'bash', pattern:'printenv, env, set, export -p, declare -x, compgen -v', tools:'Bash', reason:'Environment variable dumps — may leak API keys and secrets to output' },
+];
+
+const catNames = { env:'Environment', git:'Git', ssh:'SSH Keys', cred:'Credentials', sys:'System Dirs', bash:'Dangerous Bash' };
+const secTbody = document.getElementById('sec-tbody');
+
+function renderSecTable(filter) {
+  secTbody.innerHTML = '';
+  secPatterns.filter(p => filter === 'all' || p.cat === filter).forEach(p => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class="category">${catNames[p.cat]}</td><td class="pattern">${p.pattern}</td><td>${p.tools}</td><td style="color:var(--text2)">${p.reason}</td>`;
+    secTbody.appendChild(tr);
+  });
+}
+
+renderSecTable('all');
+
+document.querySelectorAll('#sec-filter button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#sec-filter button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderSecTable(btn.dataset.cat);
+  });
+});
+
+// =============================================================================
+// PROMPT OUTPUT
+// =============================================================================
+const promptOutput = document.getElementById('prompt-output');
+const promptText = document.getElementById('prompt-text');
+const copyBtn = document.getElementById('copy-btn');
+
+// Show prompt bar on security/protocol tabs
+const promptTabs = ['overview', 'security', 'protocol', 'hooks', 'workflow'];
+tabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    const show = promptTabs.includes(tab.dataset.panel);
+    promptOutput.style.display = show ? 'block' : 'none';
+    if (tab.dataset.panel === 'overview') {
+      promptText.textContent = 'Build a Claude Code plugin with two pillars: (1) Context Continuity — ledger system with append-until-handoff model, session handoffs (YAML), /save-state, /create-handoff, /resume-session commands, dirty file tracking, and context window monitoring; (2) Security Guardrails — non-disableable PreToolUse hook that blocks writes to .env, .ssh/, .git/, .aws/credentials, system dirs, and dangerous bash commands, with symlink resolution. Connect via 6 lifecycle hooks using stdin/stdout JSON protocol with mkdir-based locking.';
+    } else if (tab.dataset.panel === 'security') {
+      promptText.textContent = 'Set up the continuity plugin security-blocker hook that blocks writes to .env, .git/, .ssh/, .aws/credentials, and system directories. It should resolve symlinks and cannot be disabled via hook-overrides.json.';
+    } else if (tab.dataset.panel === 'protocol') {
+      promptText.textContent = 'Implement a Claude Code hook that reads JSON from stdin, processes tool events (PreToolUse/PostToolUse) and lifecycle events (SessionStart/SessionEnd), and returns JSON to stdout with continue/stopReason/systemMessage fields.';
+    } else if (tab.dataset.panel === 'hooks') {
+      promptText.textContent = 'Create a Claude Code plugin with 6 hooks: session-loader (SessionStart), session-end (SessionEnd), pre-compact-saver (PreCompact), security-blocker (PreToolUse), dirty-state-tracker (PostToolUse), and context-monitor (UserPromptSubmit). Use mkdir-based locking and atomic file writes.';
+    } else if (tab.dataset.panel === 'workflow') {
+      promptText.textContent = 'Implement a continuity system with /save-state (APPEND to activity log + key decisions, REPLACE current state snapshot), /create-handoff (archive log to YAML + clean ledger to <300 lines), and /resume-session (read latest handoff + ledger + shared-context.json, present unified summary). Use append-until-handoff model with 500-line warning and 800-line urgent thresholds.';
+    }
+  });
+});
+
+copyBtn.addEventListener('click', () => {
+  navigator.clipboard.writeText(promptText.textContent).then(() => {
+    copyBtn.textContent = 'Copied!';
+    setTimeout(() => copyBtn.textContent = 'Copy', 1500);
+  });
+});
+
+// Inline command copy buttons
+document.querySelectorAll('.cmd-copy-btn').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const cmd = btn.dataset.cmd;
+    navigator.clipboard.writeText(cmd).then(() => {
+      btn.classList.add('copied');
+      btn.innerHTML = '&#10003;';
+      setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = '&#128203;'; }, 1500);
+    });
+  });
+});
+</script>
+</body>
+</html>

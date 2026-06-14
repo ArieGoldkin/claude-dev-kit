@@ -1,0 +1,111 @@
+# Worked example: MR creation flow as a sequence diagram video
+# Pattern: sequence-diagram
+# Render with: npx remotion render MrCreationSequence out/mr-creation.mp4
+
+title: "MR Creation Flow"
+subtitle: "Developer → glab CLI → GitLab → CI → Reviewer"
+duration_seconds: 45
+fps: 30
+
+actors:
+  - { id: developer, label: "Developer", column: 0 }
+  - { id: glab, label: "glab CLI", column: 1 }
+  - { id: gitlab, label: "GitLab API", column: 2 }
+  - { id: ci, label: "CI Pipeline", column: 3 }
+  - { id: reviewer, label: "Reviewer", column: 4 }
+
+messages:
+  - id: m1
+    from: developer
+    to: glab
+    label: "glab mr create --title ..."
+    type: sync
+    time_frame: 0           # 0s
+
+  - id: m2
+    from: glab
+    to: gitlab
+    label: "POST /merge_requests"
+    type: sync
+    time_frame: 60          # 2s
+
+  - id: m3
+    from: gitlab
+    to: glab
+    label: "201 + MR URL"
+    type: response
+    time_frame: 90          # 3s
+
+  - id: m4
+    from: glab
+    to: developer
+    label: "https://gitlab.com/.../merge_requests/152"
+    type: response
+    time_frame: 120         # 4s
+
+  # Async event: GitLab triggers CI
+  - id: m5
+    from: gitlab
+    to: ci
+    label: "trigger pipeline (event)"
+    type: async
+    time_frame: 180         # 6s
+
+  - id: m6
+    from: ci
+    to: ci
+    label: "lint • typecheck • test"
+    type: sync              # self-call (CI doing work)
+    time_frame: 240         # 8s
+
+  - id: m7
+    from: ci
+    to: gitlab
+    label: "report status: success"
+    type: response
+    time_frame: 600         # 20s
+
+  # Reviewer notified
+  - id: m8
+    from: gitlab
+    to: reviewer
+    label: "review_requested (webhook + email)"
+    type: async
+    time_frame: 660         # 22s
+
+  - id: m9
+    from: reviewer
+    to: gitlab
+    label: "GET /merge_requests/152"
+    type: sync
+    time_frame: 750         # 25s
+
+  - id: m10
+    from: reviewer
+    to: gitlab
+    label: "POST /discussions (inline comment)"
+    type: sync
+    time_frame: 900         # 30s
+
+  - id: m11
+    from: reviewer
+    to: gitlab
+    label: "POST /merge_requests/152/approve"
+    type: sync
+    time_frame: 1050        # 35s
+
+  - id: m12
+    from: gitlab
+    to: developer
+    label: "MR approved + auto-merge"
+    type: async
+    time_frame: 1200        # 40s
+
+narration:
+  - { segment: "The developer runs glab mr create with their working tree.", start_frame: 0 }
+  - { segment: "glab POSTs to GitLab's merge_requests endpoint and returns the MR URL.", start_frame: 60 }
+  - { segment: "GitLab fires an async event triggering the CI pipeline.", start_frame: 180 }
+  - { segment: "CI runs lint, typecheck, and tests. This usually takes one to ten minutes.", start_frame: 240 }
+  - { segment: "When CI succeeds, GitLab notifies the reviewer via webhook and email.", start_frame: 660 }
+  - { segment: "The reviewer fetches the MR, posts inline comments via discussions, and approves.", start_frame: 750 }
+  - { segment: "Approval triggers auto-merge if configured. The developer is notified.", start_frame: 1200 }

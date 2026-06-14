@@ -1,0 +1,4 @@
+{
+  "$comment": "Repos restricted to AWS Bedrock users only. See commands/setup-repo-access-guard.md",
+  "bedrock_only": []
+}

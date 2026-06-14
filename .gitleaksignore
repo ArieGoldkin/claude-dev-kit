@@ -1,0 +1,8 @@
+# DevOps toolkit false positives
+plugins/devops-toolkit/README.md:generic-password-low-entropy:133
+plugins/devops-toolkit/README.md:gitlab_personal_access_token:13
+plugins/devops-toolkit/skills/code-review-playbook/references/database-connection-patterns.md:password-in-url:142
+plugins/devops-toolkit/skills/aws-cli-toolkit/SKILL.md:Password in URL:284
+plugins/devops-toolkit/skills/aws-cli-toolkit/references/aws-sm-operations.md:Password in URL:37
+plugins/devops-toolkit/skills/aws-cli-toolkit/templates/credential-commands.sh:Password in URL:38
+plugins/devops-toolkit/skills/devops-deployment/templates/docker-compose.yml:Password in URL:16

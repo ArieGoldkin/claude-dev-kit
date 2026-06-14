@@ -1,0 +1,68 @@
+{
+  "description": "Benchmark suite for auto-research intent classification. Each entry maps a user goal to the expected intent category and target skill.",
+  "version": "1.0",
+  "entries": [
+    {"input": "fix the flaky test in auth.test.ts", "category": "fix", "skill": "/fix-bug"},
+    {"input": "debug the timeout in payment handler", "category": "fix", "skill": "/fix-bug"},
+    {"input": "the login endpoint crashes on empty password", "category": "fix", "skill": "/fix-bug"},
+    {"input": "fix the broken migration", "category": "fix", "skill": "/fix-bug"},
+    {"input": "there's a regression in the user search", "category": "fix", "skill": "/fix-bug"},
+    {"input": "the CI pipeline keeps failing on lint", "category": "fix", "skill": "/fix-bug"},
+    {"input": "error: Cannot read property of undefined in utils.ts", "category": "fix", "skill": "/fix-bug"},
+
+    {"input": "reduce p95 API latency below 200ms", "category": "optimize", "skill": "/experiment"},
+    {"input": "improve the response time of the search endpoint", "category": "optimize", "skill": "/experiment"},
+    {"input": "make the build faster", "category": "optimize", "skill": "/experiment"},
+    {"input": "optimize memory usage in the worker process", "category": "optimize", "skill": "/experiment"},
+    {"input": "reduce bundle size below 500KB", "category": "optimize", "skill": "/experiment"},
+    {"input": "get Lighthouse performance score above 90", "category": "optimize", "skill": "/experiment"},
+    {"input": "the API should respond in under 100ms", "category": "optimize", "skill": "/experiment"},
+
+    {"input": "bring test coverage above 85%", "category": "cover", "skill": "/cover --target"},
+    {"input": "get coverage to 90%", "category": "cover", "skill": "/cover --target"},
+    {"input": "the auth module is only at 40% coverage", "category": "cover", "skill": "/cover --target"},
+    {"input": "we need 80% test coverage before release", "category": "cover", "skill": "/cover --target"},
+    {"input": "add tests for the untested payment module", "category": "cover", "skill": "/cover --target"},
+
+    {"input": "design an event-driven notification system", "category": "design", "skill": "/brainstorming"},
+    {"input": "how should we architect the caching layer", "category": "design", "skill": "/brainstorming"},
+    {"input": "brainstorm approaches for real-time sync", "category": "design", "skill": "/brainstorming"},
+    {"input": "explore options for the new auth flow", "category": "design", "skill": "/brainstorming"},
+    {"input": "I have an idea for improving the onboarding", "category": "design", "skill": "/brainstorming"},
+    {"input": "what's the best way to handle file uploads", "category": "design", "skill": "/brainstorming"},
+
+    {"input": "build the user preferences page", "category": "build", "skill": "/develop"},
+    {"input": "implement the notification feature from PROJ-142", "category": "build", "skill": "/develop"},
+    {"input": "create a new API endpoint for team management", "category": "build", "skill": "/develop"},
+    {"input": "add dark mode support", "category": "build", "skill": "/develop"},
+    {"input": "develop the export-to-CSV feature", "category": "build", "skill": "/develop"},
+    {"input": "implement the dashboard widget from the Figma", "category": "build", "skill": "/develop"},
+
+    {"input": "review MR !65", "category": "review", "skill": "/review-mr"},
+    {"input": "review the auth changes in PR #42", "category": "review", "skill": "/review-mr"},
+    {"input": "look at the merge request for the new API", "category": "review", "skill": "/review-mr"},
+    {"input": "review pull request 123", "category": "review", "skill": "/review-mr"},
+
+    {"input": "make sure everything passes", "category": "verify", "skill": "/verify"},
+    {"input": "verify the build is green before I push", "category": "verify", "skill": "/verify"},
+    {"input": "check that tests and lint pass", "category": "verify", "skill": "/verify"},
+    {"input": "validate the deploy is ready", "category": "verify", "skill": "/verify"},
+    {"input": "ensure all quality checks pass", "category": "verify", "skill": "/verify"},
+
+    {"input": "why aren't the auth tests passing", "category": "diagnose", "skill": "/fix-bug"},
+    {"input": "why is the build so slow", "category": "diagnose", "skill": "/fix-bug"},
+    {"input": "why does the API return 500 on large payloads", "category": "diagnose", "skill": "/fix-bug"},
+    {"input": "why can't users log in after the deploy", "category": "diagnose", "skill": "/fix-bug"},
+    {"input": "investigate why the worker keeps crashing", "category": "diagnose", "skill": "/fix-bug"},
+
+    {"input": "improve the code-review-playbook skill", "category": "improve-skill", "skill": "/experiment"},
+    {"input": "optimize the prompt for the summarizer", "category": "improve-skill", "skill": "/experiment"},
+    {"input": "make the brainstorming skill better", "category": "improve-skill", "skill": "/experiment"},
+    {"input": "the review skill misses security issues, improve it", "category": "improve-skill", "skill": "/experiment"},
+
+    {"input": "fix the slow query in the members endpoint", "category": "fix", "skill": "/fix-bug", "note": "fix wins over optimize because user said 'fix'"},
+    {"input": "make the API faster", "category": "optimize", "skill": "/experiment", "note": "optimize because no specific bug, just improvement goal"},
+    {"input": "write more tests", "category": "cover", "skill": "/cover --target", "note": "cover because about test quantity, not fixing broken tests"},
+    {"input": "test the new feature", "category": "verify", "skill": "/verify", "note": "verify because checking existing feature works, not adding coverage"}
+  ]
+}

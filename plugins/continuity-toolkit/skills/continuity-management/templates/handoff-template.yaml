@@ -1,0 +1,80 @@
+# Session Handoff Template (YAML Format)
+# ~30% fewer tokens than markdown format
+# Machine-parseable for automation
+
+# Metadata
+created: "{{TIMESTAMP}}"
+duration_hours: {{DURATION}}
+branch: "{{BRANCH}}"
+session_id: "{{SESSION_ID}}"
+
+# What was completed this session
+accomplished:
+  - item: "{{ITEM_1}}"
+    type: feature  # feature|bugfix|refactor|test|docs
+    commits:
+      - "{{COMMIT_HASH}}"
+  # - item: "{{ITEM_2}}"
+  #   type: bugfix
+
+# Archived from ledger Session Activity Log
+session_activity_log:
+  - timestamp: "{{TIMESTAMP_1}}"
+    entries:
+      - "{{ENTRY_1}}"
+      - "{{ENTRY_2}}"
+  # - timestamp: "{{TIMESTAMP_2}}"
+  #   entries:
+  #     - "{{ENTRY_3}}"
+
+# Work remaining
+pending:
+  - task: "{{TASK_1}}"
+    priority: high  # high|medium|low
+    recommended_first: true
+  # - task: "{{TASK_2}}"
+  #   priority: medium
+
+# Current blockers (empty if none)
+blockers: []
+# - issue: "{{BLOCKER}}"
+#   workaround: "{{WORKAROUND}}"
+
+# Decisions made this session
+key_decisions:
+  - decision: "{{DECISION}}"
+    reasoning: "{{REASONING}}"
+    evidence:
+      - "{{EVIDENCE}}"
+  # - decision: "{{DECISION_2}}"
+  #   reasoning: "{{REASONING_2}}"
+
+# Files touched this session
+files_modified:
+  - path: "{{FILE_PATH_1}}"
+    change_type: created  # created|modified|deleted
+  # - path: "{{FILE_PATH_2}}"
+  #   change_type: modified
+
+# Quality check results at session end
+quality_checks:
+  biome: pass  # pass|fail|skipped
+  typescript: pass
+  tests:
+    passed: {{TEST_PASS_COUNT}}
+    failed: {{TEST_FAIL_COUNT}}
+    skipped: {{TEST_SKIP_COUNT}}
+
+# Context preservation
+context:
+  patterns_discovered:
+    - "{{PATTERN}}"
+  open_questions:
+    - "{{QUESTION}}"
+  session_notes:
+    - "{{NOTE}}"
+
+# Edit tracking at handoff time
+dirty_tracking:
+  files_edited_count: {{EDIT_COUNT}}
+  threshold_triggered: false  # true if auto-suggested handoff

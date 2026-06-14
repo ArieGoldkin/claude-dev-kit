@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Creative Landing Page Template</title>
+
+    <!-- Preload critical fonts -->
+    <link rel="preload" href="/fonts/display-font.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/fonts/body-font.woff2" as="font" type="font/woff2" crossorigin>
+
+    <style>
+        /* Critical CSS - Above the fold styles */
+
+        /* CSS Reset and Foundation */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Custom Properties for Creative Theming */
+        :root {
+            /* Typography Scale */
+            --font-display: 'DisplayFont', 'Georgia', serif;
+            --font-body: 'BodyFont', 'Helvetica Neue', sans-serif;
+            --text-ratio: 1.25;
+            --text-base: clamp(1rem, 2.5vw, 1.125rem);
+            --text-sm: calc(var(--text-base) / var(--text-ratio));
+            --text-lg: calc(var(--text-base) * var(--text-ratio));
+            --text-xl: calc(var(--text-lg) * var(--text-ratio));
+            --text-2xl: calc(var(--text-xl) * var(--text-ratio));
+            --text-3xl: calc(var(--text-2xl) * var(--text-ratio));
+
+            /* Creative Color Palette */
+            --hue-primary: 280;
+            --saturation-primary: 85%;
+            --lightness-primary: 55%;
+            --color-primary: hsl(var(--hue-primary), var(--saturation-primary), var(--lightness-primary));
+            --color-primary-light: hsl(var(--hue-primary), calc(var(--saturation-primary) * 0.7), calc(var(--lightness-primary) * 1.3));
+            --color-primary-dark: hsl(var(--hue-primary), var(--saturation-primary), calc(var(--lightness-primary) * 0.7));
+
+            --color-accent: hsl(35, 85%, 65%);
+            --color-text: hsl(220, 15%, 25%);
+            --color-text-light: hsl(220, 10%, 60%);
+            --color-background: hsl(0, 0%, 98%);
+            --color-surface: hsl(0, 0%, 100%);
+
+            /* Spacing System */
+            --space-unit: clamp(0.5rem, 2.5vw, 1rem);
+            --space-xs: calc(var(--space-unit) * 0.5);
+            --space-sm: var(--space-unit);
+            --space-md: calc(var(--space-unit) * 1.5);
+            --space-lg: calc(var(--space-unit) * 2);
+            --space-xl: calc(var(--space-unit) * 3);
+            --space-2xl: calc(var(--space-unit) * 4);
+
+            /* Animation Easing */
+            --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+            --ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
+            --ease-elastic: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        /* Base Typography */
+        body {
+            font-family: var(--font-body);
+            font-size: var(--text-base);
+            line-height: 1.6;
+            color: var(--color-text);
+            background: var(--color-background);
+            overflow-x: hidden;
+        }
+
+        h1, h2, h3 {
+            font-family: var(--font-display);
+            line-height: 1.2;
+            color: var(--color-text);
+        }
+
+        /* Layout Foundation */
+        .page-container {
+            min-height: 100vh;
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 var(--space-md);
+        }
+
+        /* Creative Hero Section */
+        .hero {
+            position: relative;
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            align-items: center;
+            gap: var(--space-xl);
+            padding: var(--space-xl) 0;
+            background:
+                radial-gradient(circle at 20% 80%, hsla(var(--hue-primary), 60%, 70%, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, hsla(35, 80%, 70%, 0.1) 0%, transparent 50%),
+                linear-gradient(135deg, var(--color-background) 0%, hsl(220, 20%, 96%) 100%);
+        }
+
+        .hero-content {
+            animation: slideUpFade 1s var(--ease-out-expo) both;
+        }
+
+        .hero-title {
+            font-size: var(--text-3xl);
+            margin-bottom: var(--space-md);
+            position: relative;
+        }
+
+        .hero-accent {
+            color: var(--color-primary);
+            position: relative;
+        }
+
+        .hero-accent::after {
+            content: '';
+            position: absolute;
+            bottom: 0.1em;
+            left: 0;
+            right: 0;
+            height: 0.15em;
+            background: var(--color-accent);
+            transform: scaleX(0);
+            transform-origin: left;
+            animation: underlineGrow 0.8s 1.2s var(--ease-out-quart) forwards;
+        }
+
+        .hero-description {
+            font-size: var(--text-lg);
+            color: var(--color-text-light);
+            margin-bottom: var(--space-lg);
+            max-width: 500px;
+        }
+
+        /* Creative CTA Button */
+        .cta-button {
+            position: relative;
+            display: inline-block;
+            padding: var(--space-md) var(--space-xl);
+            background: var(--color-primary);
+            color: white;
+            text-decoration: none;
+            border-radius: 3rem;
+            font-weight: 600;
+            font-size: var(--text-lg);
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s var(--ease-out-quart);
+            overflow: hidden;
+        }
+
+        .cta-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.6s;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .cta-button:hover::before {
+            left: 100%;
+        }
+
+        /* Creative Visual Element */
+        .hero-visual {
+            position: relative;
+            height: 400px;
+            animation: slideUpFade 1s 0.3s var(--ease-out-expo) both;
+        }
+
+        .creative-shape {
+            position: absolute;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .shape-1 {
+            width: 200px;
+            height: 200px;
+            top: 20%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+
+        .shape-2 {
+            width: 150px;
+            height: 150px;
+            top: 60%;
+            right: 20%;
+            background: linear-gradient(135deg, var(--color-accent), hsl(35, 85%, 75%));
+            animation-delay: 2s;
+        }
+
+        .shape-3 {
+            width: 100px;
+            height: 100px;
+            top: 10%;
+            right: 10%;
+            background: linear-gradient(135deg, var(--color-primary-light), var(--color-primary));
+            animation-delay: 4s;
+        }
+
+        /* Feature Grid Section */
+        .features {
+            padding: var(--space-2xl) 0;
+            background: var(--color-surface);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: var(--space-xl);
+            margin-top: var(--space-xl);
+        }
+
+        .feature-card {
+            padding: var(--space-lg);
+            border-radius: var(--space-md);
+            background: var(--color-background);
+            border: 1px solid hsl(220, 10%, 90%);
+            transition: all 0.3s var(--ease-out-quart);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.3s var(--ease-out-quart);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .feature-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        /* Animations */
+        @keyframes slideUpFade {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes underlineGrow {
+            to { transform: scaleX(1); }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            33% { transform: translateY(-10px) rotate(5deg); }
+            66% { transform: translateY(5px) rotate(-3deg); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .hero {
+                grid-template-columns: 1fr;
+                text-align: center;
+                gap: var(--space-lg);
+            }
+
+            .hero-title {
+                font-size: var(--text-2xl);
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Motion Preference Respect */
+        @media (prefers-reduced-motion: reduce) {
+            .hero-content,
+            .hero-visual,
+            .creative-shape {
+                animation: none;
+            }
+
+            .hero-accent::after {
+                animation: none;
+                transform: scaleX(1);
+            }
+
+            .cta-button:hover {
+                transform: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="container" style="display: contents;">
+                <div class="hero-content">
+                    <h1 class="hero-title">
+                        Creative Design
+                        <span class="hero-accent">Reimagined</span>
+                    </h1>
+                    <p class="hero-description">
+                        Distinctive interfaces that avoid generic patterns while maintaining
+                        exceptional usability and accessibility standards.
+                    </p>
+                    <a href="#features" class="cta-button">
+                        Explore Creative Patterns
+                    </a>
+                </div>
+
+                <div class="hero-visual">
+                    <div class="creative-shape shape-1"></div>
+                    <div class="creative-shape shape-2"></div>
+                    <div class="creative-shape shape-3"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section id="features" class="features">
+            <div class="container">
+                <h2 style="font-size: var(--text-2xl); text-align: center; margin-bottom: var(--space-md);">
+                    Creative Excellence
+                </h2>
+                <p style="text-align: center; color: var(--color-text-light); max-width: 600px; margin: 0 auto;">
+                    Every design choice serves a purpose, creating memorable experiences
+                    that users want to return to and share.
+                </p>
+
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <h3 style="margin-bottom: var(--space-sm); color: var(--color-primary);">
+                            Intentional Aesthetics
+                        </h3>
+                        <p style="color: var(--color-text-light);">
+                            Every visual decision supports a clear creative direction,
+                            from typography choices to color palettes to spatial composition.
+                        </p>
+                    </div>
+
+                    <div class="feature-card">
+                        <h3 style="margin-bottom: var(--space-sm); color: var(--color-primary);">
+                            Anti-Generic Patterns
+                        </h3>
+                        <p style="color: var(--color-text-light);">
+                            Systematic avoidance of overused design trends while maintaining
+                            accessibility and usability standards.
+                        </p>
+                    </div>
+
+                    <div class="feature-card">
+                        <h3 style="margin-bottom: var(--space-sm); color: var(--color-primary);">
+                            Performance Focused
+                        </h3>
+                        <p style="color: var(--color-text-light);">
+                            Creative complexity matched by technical optimization,
+                            ensuring smooth interactions across all devices.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer style="padding: var(--space-lg) 0; background: var(--color-text); color: white; text-align: center;">
+            <div class="container">
+                <p>&copy; 2025 Creative Design Template. Built with intentional distinction.</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Progressive Enhancement Script -->
+    <script>
+        // Intersection Observer for scroll animations
+        const observeElements = () => {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.animationPlayState = 'running';
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            document.querySelectorAll('.feature-card').forEach((card, index) => {
+                card.style.animation = `slideUpFade 0.6s ${index * 0.2}s var(--ease-out-expo) both`;
+                card.style.animationPlayState = 'paused';
+                observer.observe(card);
+            });
+        };
+
+        // Smooth scrolling for anchor links
+        const setupSmoothScrolling = () => {
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                });
+            });
+        };
+
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            observeElements();
+            setupSmoothScrolling();
+
+            // Add loaded class for font optimization
+            document.fonts.ready.then(() => {
+                document.body.classList.add('fonts-loaded');
+            });
+        });
+
+        // Creative cursor effect (optional enhancement)
+        if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            let cursor = null;
+
+            const createCursor = () => {
+                cursor = document.createElement('div');
+                cursor.style.cssText = `
+                    position: fixed;
+                    width: 20px;
+                    height: 20px;
+                    border-radius: 50%;
+                    background: var(--color-accent);
+                    pointer-events: none;
+                    mix-blend-mode: difference;
+                    z-index: 9999;
+                    transition: transform 0.1s ease;
+                `;
+                document.body.appendChild(cursor);
+            };
+
+            document.addEventListener('mousemove', (e) => {
+                if (!cursor) createCursor();
+                cursor.style.left = e.clientX - 10 + 'px';
+                cursor.style.top = e.clientY - 10 + 'px';
+            });
+
+            // Scale cursor on interactive elements
+            document.addEventListener('mouseover', (e) => {
+                if (cursor && (e.target.matches('a, button, .feature-card'))) {
+                    cursor.style.transform = 'scale(2)';
+                }
+            });
+
+            document.addEventListener('mouseout', (e) => {
+                if (cursor && (e.target.matches('a, button, .feature-card'))) {
+                    cursor.style.transform = 'scale(1)';
+                }
+            });
+        }
+    </script>
+</body>
+</html>
+
+<!--
+Usage Notes:
+
+1. Replace placeholder content with actual project content
+2. Update CSS custom properties for brand colors and fonts
+3. Add actual font files and update font references
+4. Customize animation timings and easing for aesthetic direction
+5. Add more sections as needed (testimonials, pricing, etc.)
+6. Optimize images and add proper alt text
+7. Test accessibility with screen readers
+8. Validate HTML and CSS
+9. Test performance on various devices
+10. Consider adding more advanced interactions based on aesthetic choice
+
+Aesthetic Variations:
+
+Minimal: Reduce animations, increase whitespace, monochromatic colors
+Maximal: Add more shapes, complex gradients, elaborate animations
+Organic: Curved shapes, natural colors, flowing animations
+Geometric: Angular shapes, precise grid, mathematical proportions
+Editorial: Typography focus, minimal graphics, structured hierarchy
+
+-->

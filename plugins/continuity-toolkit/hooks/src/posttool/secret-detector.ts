@@ -1,0 +1,1 @@
+../../../../../shared/hooks-infra/src/hooks/posttool/secret-detector.ts

@@ -1,0 +1,208 @@
+# GitLab CI/CD Pipeline for Terraform
+# Uses OIDC authentication to AWS - no static credentials required
+
+variables:
+  TF_ROOT: ${CI_PROJECT_DIR}/terraform
+  TF_STATE_NAME: ${CI_PROJECT_NAME}
+  # Tool versions (can be overridden)
+  TERRAFORM_VERSION: "1.9.0"
+  TFLINT_VERSION: "0.50.0"
+
+stages:
+  - validate
+  - plan
+  - apply
+  - destroy
+
+# Base template for all Terraform jobs
+.terraform:base:
+  image: hashicorp/terraform:${TERRAFORM_VERSION}
+  before_script:
+    # Configure AWS credentials via OIDC
+    - |
+      if [ -n "$CI_JOB_JWT_V2" ]; then
+        export AWS_WEB_IDENTITY_TOKEN_FILE=/tmp/web_identity_token
+        echo "$CI_JOB_JWT_V2" > $AWS_WEB_IDENTITY_TOKEN_FILE
+        export AWS_ROLE_ARN="${AWS_ROLE_ARN}"
+        export AWS_ROLE_SESSION_NAME="gitlab-ci-${CI_PIPELINE_ID}"
+      fi
+    # Configure backend
+    - |
+      export TF_HTTP_ADDRESS="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}-${TF_ENV}"
+      export TF_HTTP_LOCK_ADDRESS="${TF_HTTP_ADDRESS}/lock"
+      export TF_HTTP_UNLOCK_ADDRESS="${TF_HTTP_ADDRESS}/lock"
+      export TF_HTTP_USERNAME="gitlab-ci-token"
+      export TF_HTTP_PASSWORD="${CI_JOB_TOKEN}"
+      export TF_HTTP_LOCK_METHOD="POST"
+      export TF_HTTP_UNLOCK_METHOD="DELETE"
+    - cd ${TF_ROOT}
+    - terraform init -reconfigure
+  id_tokens:
+    GITLAB_OIDC_TOKEN:
+      aud: https://gitlab.com
+
+# Environment-specific variables
+.env:dev:
+  variables:
+    TF_ENV: dev
+    AWS_ROLE_ARN: ${DEV_AWS_ROLE_ARN}
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+.env:staging:
+  variables:
+    TF_ENV: staging
+    AWS_ROLE_ARN: ${STAGING_AWS_ROLE_ARN}
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+.env:production:
+  variables:
+    TF_ENV: production
+    AWS_ROLE_ARN: ${PRODUCTION_AWS_ROLE_ARN}
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+
+# ============================================================================
+# VALIDATE STAGE
+# ============================================================================
+
+validate:
+  extends: .terraform:base
+  stage: validate
+  variables:
+    TF_ENV: dev  # Use dev for validation
+    AWS_ROLE_ARN: ${DEV_AWS_ROLE_ARN}
+  script:
+    - terraform fmt -check -recursive
+    - terraform validate
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# ============================================================================
+# PLAN STAGE
+# ============================================================================
+
+.terraform:plan:
+  extends: .terraform:base
+  stage: plan
+  script:
+    - terraform plan -var-file=vars/${TF_ENV}.tfvars -out=plan.tfplan
+    - terraform show -json plan.tfplan > plan.json
+    - terraform show plan.tfplan > plan.txt
+  artifacts:
+    name: terraform-plan-${TF_ENV}
+    paths:
+      - ${TF_ROOT}/plan.tfplan
+      - ${TF_ROOT}/plan.txt
+    reports:
+      terraform: ${TF_ROOT}/plan.json
+    expire_in: 7 days
+  resource_group: terraform-${TF_ENV}
+
+plan:dev:
+  extends:
+    - .terraform:plan
+    - .env:dev
+
+plan:staging:
+  extends:
+    - .terraform:plan
+    - .env:staging
+
+plan:production:
+  extends:
+    - .terraform:plan
+    - .env:production
+
+# ============================================================================
+# APPLY STAGE
+# ============================================================================
+
+.terraform:apply:
+  extends: .terraform:base
+  stage: apply
+  script:
+    - terraform apply plan.tfplan
+  resource_group: terraform-${TF_ENV}
+  when: manual
+  allow_failure: false
+
+apply:dev:
+  extends:
+    - .terraform:apply
+    - .env:dev
+  needs:
+    - job: plan:dev
+      artifacts: true
+  environment:
+    name: dev
+    action: start
+
+apply:staging:
+  extends:
+    - .terraform:apply
+    - .env:staging
+  needs:
+    - job: plan:staging
+      artifacts: true
+  environment:
+    name: staging
+    action: start
+
+apply:production:
+  extends:
+    - .terraform:apply
+    - .env:production
+  needs:
+    - job: plan:production
+      artifacts: true
+  environment:
+    name: production
+    action: start
+
+# ============================================================================
+# DESTROY STAGE (Protected)
+# ============================================================================
+
+.terraform:destroy:
+  extends: .terraform:base
+  stage: destroy
+  script:
+    - |
+      if [ "$DESTROY_CONFIRMED" != "yes" ]; then
+        echo "Error: Set DESTROY_CONFIRMED=yes to enable destroy"
+        exit 1
+      fi
+    - terraform destroy -var-file=vars/${TF_ENV}.tfvars -auto-approve
+  resource_group: terraform-${TF_ENV}
+  when: manual
+  allow_failure: false
+  rules:
+    - if: $DESTROY_CONFIRMED == "yes"
+      when: manual
+
+destroy:dev:
+  extends:
+    - .terraform:destroy
+    - .env:dev
+  environment:
+    name: dev
+    action: stop
+
+destroy:staging:
+  extends:
+    - .terraform:destroy
+    - .env:staging
+  environment:
+    name: staging
+    action: stop
+
+destroy:production:
+  extends:
+    - .terraform:destroy
+    - .env:production
+  environment:
+    name: production
+    action: stop

@@ -1,0 +1,50 @@
+{
+  "name": "agentation",
+  "version": "1.0.0",
+  "description": "Visual feedback tool for AI agents - annotate UI elements with automatic selector capture",
+  "capabilities": [
+    {
+      "id": "element-annotation",
+      "name": "Element Annotation",
+      "description": "Click UI elements to capture selectors, positions, and add feedback notes",
+      "load_on": ["qa", "bug", "feedback", "ui issue", "annotate", "element", "selector"]
+    },
+    {
+      "id": "qa-workflow",
+      "name": "QA Workflow Integration",
+      "description": "Integrate visual annotations into QA bug reporting workflow",
+      "load_on": ["qa workflow", "bug report", "jira", "testing", "quality assurance"]
+    },
+    {
+      "id": "setup-configuration",
+      "name": "Setup & Configuration",
+      "description": "Install and configure Agentation in React applications",
+      "load_on": ["install", "setup", "configure", "integration"]
+    }
+  ],
+  "references": [
+    {
+      "file": "references/setup-guide.md",
+      "description": "Installation and configuration instructions",
+      "load_on": ["install", "setup", "configure"]
+    },
+    {
+      "file": "references/usage-guide.md",
+      "description": "How to use Agentation for visual feedback",
+      "load_on": ["usage", "how to", "tutorial", "guide"]
+    }
+  ],
+  "examples": [
+    {
+      "file": "examples/react-integration.tsx",
+      "description": "React component integration example",
+      "load_on": ["example", "integration", "react"]
+    }
+  ],
+  "metadata": {
+    "tags": ["qa", "feedback", "ui", "visual-annotation", "debugging", "agent-workflow"],
+    "dependencies": ["agentation"],
+    "platforms": ["react", "web"],
+    "maturity": "trial"
+  }
+}

@@ -1,0 +1,395 @@
+---
+name: auto-research
+description: "Autonomous goal-driven research orchestrator. Classifies natural language goals, selects the right skill, confirms plan, and executes. Routes to /fix-bug, /experiment, /cover, /brainstorming, /develop, /review-mr, or /verify. Use when: user describes a goal not a method, the right skill is unclear, or you want the agent to pick the approach. Triggers on: auto-research, figure out, fix the, improve the, get coverage, design a, build the, make sure, optimize the, why isn't"
+effort: xhigh
+context: fork
+---
+
+# Auto-Research
+
+Autonomous goal-driven orchestration inspired by Karpathy's autoresearch pattern. The user
+writes intent in plain English; the agent classifies the goal, selects the right skill,
+configures parameters, and runs the appropriate autonomous loop.
+
+**Core principle:** Human writes intent, agent figures out execution. One entry point,
+many execution paths.
+
+## When to Use
+
+| User says... | Auto-research routes to |
+|---|---|
+| "fix the flaky test in auth" | `/fix-bug` |
+| "improve API latency below 100ms" | `/experiment --minimize` |
+| "get coverage to 90%" | `/cover --target 90` |
+| "design a caching layer" | `/brainstorming` |
+| "build the notification feature" | `/develop` |
+| "review MR !42" | `/review-mr` |
+| "make sure everything passes" | `/verify` |
+| "optimize the review skill prompt" | `/experiment` on SKILL.md |
+
+**Use `/auto-research` instead of a specific skill when:**
+- The user describes a goal, not a method
+- The right skill is not obvious from the request
+- The user wants the agent to pick the approach
+
+**Use a specific skill directly when:**
+- The user already knows which skill to use
+- The request maps unambiguously to one skill
+
+### Routing Decision Tree
+
+```
+  User intent arrives
+         |
+    Bug/error/broken? ──yes──► /fix-bug
+         |no
+    Metric to optimize? ──yes──► /experiment
+         |no
+    Coverage target? ──yes──► /cover --target
+         |no
+    Design question? ──yes──► /brainstorming
+         |no
+    Build feature? ──yes──► /develop
+         |no
+    Review MR/PR? ──yes──► /review-mr
+         |no
+    Verify/check? ──yes──► /verify
+         |no
+    Generic research ──► Web search + summarize
+```
+
+## Quick Start
+
+```
+# Fix a bug
+/auto-research fix the intermittent timeout in the payment handler
+
+# Optimize a metric
+/auto-research reduce p95 API latency below 200ms
+
+# Improve coverage
+/auto-research bring test coverage above 85%
+
+# Design something
+/auto-research design an event-driven notification system
+
+# Build a feature
+/auto-research implement the user preferences page from ticket PROJ-142
+```
+
+## The 5-Phase Flow
+
+```
+  CLASSIFY ──> PLAN ──> CONFIRM ──> EXECUTE ──> REPORT
+     │           │         │           │           │
+  Parse intent  Select   Show user   Run skill   Summarize
+  from goal     skill +  the plan,   loop with   what worked,
+                params   get OK      heartbeat   what didn't
+```
+
+### Phase 1: Classify
+
+Parse the user's natural language goal into a structured intent.
+
+1. Read the user's goal (the `$ARGUMENTS` string)
+2. Classify into one of 8 intent categories (see Intent Classification below)
+3. Extract key parameters: target files, metric, threshold, scope
+4. If ambiguous, ask ONE clarifying question before proceeding
+
+**Intent Classification:**
+
+| Category | Signal words | Target skill |
+|---|---|---|
+| `fix` | fix, debug, flaky, broken, failing, error, crash, regression | `/fix-bug` |
+| `optimize` | improve, reduce, optimize, faster, latency, performance, below, above | `/experiment` |
+| `cover` | coverage, cover, test coverage, untested, 80%, 90% | `/cover --target` |
+| `design` | design, architect, brainstorm, explore, how should we | `/brainstorming` |
+| `build` | build, implement, create, add feature, develop, from ticket | `/develop` |
+| `review` | review, MR, PR, merge request, pull request, !{number} | `/review-mr` |
+| `verify` | verify, check, validate, ensure, passes, green | `/verify` |
+| `diagnose` | why, why not, why isn't, why does, why can't, investigate | `/fix-bug` (investigation-first) |
+| `improve-skill` | optimize prompt, improve skill, SKILL.md, better instructions | `/experiment` on SKILL.md |
+
+When multiple categories match, prefer the more specific one. `"fix the slow query"` is `fix`
+(not `optimize`) because the user said "fix." `"make the API faster"` is `optimize`.
+
+### Phase 2: Plan
+
+Build the execution plan with concrete parameters.
+
+1. Select the target skill based on classification
+2. Extract skill-specific parameters from the goal
+3. Determine budget: default 10 iterations / 30 minutes (dual ceiling)
+4. Identify target files by scanning the codebase if not specified
+5. Compose the full invocation
+
+See `${CLAUDE_SKILL_DIR}/references/routing-rules.md` for detailed parameter extraction
+rules per target skill.
+
+**Plan format:**
+
+```
+Goal:     "{user's original goal}"
+Strategy: {intent category}
+Skill:    /{target-skill} {extracted args}
+Target:   {files or scope}
+Budget:   {iterations} iterations / {minutes} minutes
+Metric:   {what we're measuring} ({direction})
+```
+
+### Phase 3: Confirm
+
+Present the plan and get explicit user approval.
+
+1. Display the plan in a clear box format:
+   ```
+   ┌─────────────────────────────────────────────────┐
+   │  Auto-Research Plan                             │
+   ├─────────────────────────────────────────────────┤
+   │  Goal:     {original goal}                      │
+   │  Strategy: {intent category}                    │
+   │  Skill:    /{skill} {args}                      │
+   │  Target:   {files}                              │
+   │  Budget:   {iterations} iter / {minutes} min    │
+   │  Metric:   {metric} ({direction})               │
+   ├─────────────────────────────────────────────────┤
+   │  [Run]  [Adjust]  [Cancel]                      │
+   └─────────────────────────────────────────────────┘
+   ```
+2. For low-risk, single-pass skills (`verify`, `review`), use a brief inline confirmation
+3. If the user says **Adjust**, ask what to change, update the plan, re-display
+4. If the user says **Run** or equivalent ("yes", "go", "looks good"), proceed to Phase 4
+5. Do NOT proceed without confirmation — this is not optional
+
+**Adjustment examples:**
+- "Use 20 iterations instead" → update budget, re-confirm
+- "Also include the utils file" → add to target, re-confirm
+- "Actually, use /fix-bug instead" → reclassify, rebuild plan, re-confirm
+
+### Phase 4: Execute
+
+Hand off to the target skill and provide progress visibility.
+
+1. Invoke the selected skill with the planned parameters
+2. Follow that skill's instructions exactly — do not override its phases or guardrails
+3. Provide heartbeat updates based on skill type:
+
+**Heartbeat by skill type:**
+
+| Skill | Heartbeat frequency | Format |
+|---|---|---|
+| `/experiment` | Every iteration (~60s) | `iteration N/M \| metric: X → Y \| best: Z \| time` |
+| `/cover` | Every iteration (~60s) | `iteration N/M \| coverage: X% → Y% \| time` |
+| `/fix-bug` | At OHAOI phase boundaries | `phase: observe/hypothesize/act \| description` |
+| `/develop` | At pipeline phase boundaries | `phase: design/plan/build/verify \| task N/M` |
+| `/brainstorming` | At agent launches | `phase: agents launched/synthesis/complete` |
+| `/review-mr` | None (fast, single-pass) | — |
+| `/verify` | None (fast, single-pass) | — |
+
+**Example heartbeat for /experiment:**
+```
+[auto-research] iteration 1/10 | p95: 450ms → 380ms | best: 380ms | 2m04s
+[auto-research] iteration 2/10 | p95: 380ms → 340ms | best: 340ms | 4m12s
+[auto-research] iteration 3/10 | p95: 340ms → 355ms | discarded  | 6m30s
+```
+
+4. If the skill hits a blocker, surface it immediately — do not silently continue
+5. If stuck detection triggers (5 consecutive discards in `/experiment`), report and offer options
+
+See `${CLAUDE_SKILL_DIR}/references/worked-examples.md` for full end-to-end examples of
+each route showing the complete classify → plan → confirm → execute → report flow.
+
+### Phase 5: Report
+
+Summarize the outcome in autoresearch format. Adapt sections by skill type.
+
+```
+## Auto-Research Report
+
+Goal:     "{original goal}"
+Strategy: {skill used}
+Result:   {GOAL_REACHED | IMPROVED | NO_IMPROVEMENT | BLOCKED | DESIGN_COMPLETE | FIXED}
+Duration: {time elapsed}
+```
+
+**Report sections by skill type:**
+
+| Skill | Sections to include |
+|---|---|
+| `/experiment` | What Worked, What Didn't, Cumulative Improvement, Next Steps |
+| `/cover` | Cumulative Improvement, Tests Added, Next Steps |
+| `/fix-bug` | Root Cause, Fix Applied, Regression Test Suggestion |
+| `/develop` | Features Built, Tests Added, Remaining Tasks |
+| `/brainstorming` | Link to design output, Next Steps (offer to build) |
+| `/review-mr` | Summary of findings (delegate to review-mr's own format) |
+| `/verify` | Pass/fail summary (delegate to verify's own format) |
+
+**For iterative skills** (/experiment, /cover), include the iteration log:
+```
+### Iteration Log
+| # | Metric | Delta | Status | Description |
+|---|--------|-------|--------|-------------|
+| 1 | 380ms  | -70ms | keep   | Added composite index |
+| 2 | 340ms  | -40ms | keep   | Batched N+1 query |
+| 3 | 355ms  | +15ms | discard| Async prefetch (overhead) |
+```
+
+**Always end with Next Steps** — what the user should do next, whether the goal was
+reached or not. If partially improved, suggest continuing with adjusted parameters.
+
+## Advanced Modes
+
+### --replay Mode (Teaching)
+
+Run a simulated experiment with full narration — no code changes, no risk.
+
+```
+/auto-research --replay reduce API latency below 200ms
+```
+
+In replay mode, auto-research:
+1. Classifies and plans as normal (Phase 1-2)
+2. Skips confirmation (nothing will be modified)
+3. Walks through what WOULD happen at each iteration:
+   - "I would first look at the query in handler.ts because it's the hot path"
+   - "I would try adding an index because the WHERE clause filters on status"
+   - "If that improved latency, I would keep it and try connection pooling next"
+4. Shows the hypothetical heartbeat timeline
+5. Produces a report with estimated outcomes
+
+**Use cases:**
+- Learning how the experiment loop thinks before running it for real
+- Previewing the approach for a complex optimization
+- Demonstrating auto-research to a teammate
+
+### /why-not Diagnostic Mode
+
+Triggered when the user describes a failure rather than a goal:
+
+```
+/auto-research why aren't the auth tests passing
+/auto-research why is the build so slow
+/auto-research why does the API return 500 on large payloads
+```
+
+**Signal words:** "why", "why not", "why isn't", "why does", "why can't"
+
+In diagnostic mode, auto-research:
+1. Classifies as `fix` (observation-driven debugging)
+2. But frames the plan around investigation, not just fixing:
+   - First: observe and diagnose (read logs, run tests, trace the issue)
+   - Then: propose a fix hypothesis
+   - Then: offer to run the fix via `/fix-bug`
+3. The confirmation step shows: "I'll investigate first, then propose a fix. OK?"
+
+This is a gentler entry point than `/fix-bug` — the user is asking a question, not
+issuing a command. Auto-research respects that by investigating before acting.
+
+### Skill Self-Improvement
+
+When the goal is to improve a skill or prompt:
+
+```
+/auto-research improve the code-review-playbook skill
+/auto-research optimize the prompt for the summarizer
+```
+
+This is the most advanced route. See `${CLAUDE_SKILL_DIR}/references/self-improvement.md`
+for the full workflow including test case requirements, mutation boundaries, and guardrails.
+
+### Prompt Optimization with Golden Datasets
+
+When the goal involves evaluating against a curated dataset:
+
+```
+/auto-research optimize the review prompt against the golden dataset
+```
+
+See `${CLAUDE_SKILL_DIR}/references/golden-dataset-evaluation.md` for dataset format,
+evaluation pipeline, overfitting prevention, and Langfuse integration.
+
+## program.md Convention
+
+Before execution begins, optionally create a `program.md` file that captures the intent
+and serves as the persistent record. This follows Karpathy's three-file pattern:
+human intent (program.md) + agent-modified code (target files) + metric (evaluation).
+
+See `${CLAUDE_SKILL_DIR}/references/program-md-convention.md` for the file format.
+
+## Configuration
+
+### Budget Defaults
+
+| Parameter | Default | Max |
+|---|---|---|
+| `max_iterations` | 10 | 100 |
+| `max_minutes` | 30 | 480 |
+
+Override inline: `/auto-research --iterations 20 --minutes 60 reduce API latency`
+
+### Flags
+
+| Flag | Effect |
+|---|---|
+| `--dry-run` | Show the plan without executing |
+| `--replay` | Teaching mode: narrate what would happen without modifying code |
+| `--no-confirm` | Skip confirmation (use with caution) |
+| `--iterations N` | Override iteration budget |
+| `--minutes N` | Override time budget |
+| `--verbose` | Show detailed heartbeat every 30s |
+
+## Safety & Budget Enforcement
+
+- **Explicit confirmation** before every execution (Phase 3)
+- **No recursive auto-research** — auto-research must not invoke itself, directly or via any subagent it spawns (CC v2.1.172+ allows nested subagents, so this is an enforced policy, not a platform limitation)
+- **Target skill guardrails** apply — auto-research does not bypass them
+- **Readonly enforcement** from target skill applies unchanged
+
+### Budget Passing
+
+Auto-research passes budget to the target skill, never exceeds it:
+
+| Target skill | Budget parameter passed | Default |
+|---|---|---|
+| `/experiment` | `--iterations N --minutes M` in config | 10 iter / 30 min |
+| `/cover --target` | Iterations via Phase 5b budget | 10 iter / 30 min |
+| `/fix-bug` | Time limit only (observation loop) | 30 min |
+| `/develop` | No iteration limit (pipeline phases) | 60 min |
+| `/brainstorming` | No iteration limit (question phases) | 30 min |
+| `/review-mr` | Single pass | N/A |
+| `/verify` | Single pass | N/A |
+
+User overrides (`--iterations N`, `--minutes N`) take precedence over defaults.
+If both auto-research and the target skill have budgets, the **stricter** one applies.
+
+## Validation
+
+The intent classification rules can be validated against a benchmark suite of 50+ known
+input/category pairs. See `${CLAUDE_SKILL_DIR}/references/intent-benchmark.json`.
+
+Use this benchmark to verify classification accuracy after modifying the intent table
+or disambiguation rules. Expected accuracy: 95%+ on the benchmark entries.
+
+## Reference Files
+
+- **Routing Rules**: `${CLAUDE_SKILL_DIR}/references/routing-rules.md` — Detailed parameter
+  extraction logic per target skill, edge cases, disambiguation rules
+- **Worked Examples**: `${CLAUDE_SKILL_DIR}/references/worked-examples.md` — Full end-to-end
+  examples for each route (optimize, fix, cover, design, build, review, verify)
+- **Self-Improvement**: `${CLAUDE_SKILL_DIR}/references/self-improvement.md` — Skill
+  self-improvement workflow, test case format, mutation boundaries, guardrails
+- **Golden Dataset Evaluation**: `${CLAUDE_SKILL_DIR}/references/golden-dataset-evaluation.md` —
+  Dataset format, evaluation pipeline, overfitting prevention, Pareto search
+- **program.md Convention**: `${CLAUDE_SKILL_DIR}/references/program-md-convention.md` — Human
+  intent file format, examples, when to create vs skip
+
+## Related Skills
+
+- `/experiment` — Autonomous metric-driven optimization (primary routing target for `optimize`)
+- `/fix-bug` — Observation-driven debugging loop (routing target for `fix`)
+- `/cover --target` — Autonomous test coverage improvement (routing target for `cover`)
+- `/brainstorming` — Idea refinement via Socratic method or parallel agents (routing target for `design`)
+- `/develop` — Gated development pipeline (routing target for `build`)
+- `/review-mr` — Comprehensive MR review (routing target for `review`)
+- `/verify` — Quality verification checks (routing target for `verify`)
+- `agent-loops` — Named agentic patterns including the Karpathy Loop (theory reference)

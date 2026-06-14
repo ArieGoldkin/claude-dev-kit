@@ -1,0 +1,19 @@
+{
+  "name": "ctk",
+  "version": "2.6.6",
+  "description": "Session continuity and context management toolkit - 10 skills, 1 agent, 11 commands, 28 shared hooks, session persistence, delta-cache token compression, web research, and smart context monitoring",
+  "author": {
+    "name": "Arie Goldkin",
+    "email": "ariegoldkin88@gmail.com"
+  },
+  "homepage": "https://github.com/ArieGoldkin/claude-dev-kit/blob/main/plugins/continuity-toolkit/README.md",
+  "repository": "https://github.com/ArieGoldkin/claude-dev-kit",
+  "license": "MIT",
+  "keywords": [
+    "continuity",
+    "session-management",
+    "context-monitoring",
+    "handoff",
+    "ledger"
+  ]
+}

@@ -1,0 +1,145 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/ArieGoldkin/claude-dev-kit/shared/configs/permissions/permissions.schema.json",
+  "title": "Plugin Permission Profile",
+  "description": "JSON Schema for Claude Code permission profiles used by the plugins",
+  "type": "object",
+  "required": ["name", "version"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Reference to this schema file"
+    },
+    "name": {
+      "type": "string",
+      "description": "Unique identifier for this permission profile",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "examples": ["default", "secure", "team", "enterprise"]
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable description of what this profile allows"
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version of the permission profile",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "examples": ["1.0.0", "1.1.0"]
+    },
+    "auto_approve": {
+      "type": "object",
+      "description": "Operations that are automatically approved without user confirmation",
+      "properties": {
+        "tools": {
+          "type": "array",
+          "description": "Claude Code tools to auto-approve",
+          "items": {
+            "type": "string",
+            "enum": ["Read", "Glob", "Grep", "Write", "Edit", "Bash", "WebFetch", "WebSearch", "Task", "NotebookEdit"]
+          },
+          "uniqueItems": true
+        },
+        "paths": {
+          "type": "array",
+          "description": "File path patterns to auto-approve. Supports $PROJECT variable and glob patterns",
+          "items": {
+            "type": "string"
+          },
+          "examples": [
+            "$PROJECT/src/**",
+            "$PROJECT/*.md",
+            "!$PROJECT/.env*"
+          ]
+        },
+        "commands": {
+          "type": "array",
+          "description": "Bash commands or prefixes to auto-approve",
+          "items": {
+            "type": "string"
+          },
+          "examples": [
+            "git status",
+            "npm list",
+            "npx vitest --run"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "require_approval": {
+      "type": "object",
+      "description": "Operations that require explicit user approval",
+      "properties": {
+        "tools": {
+          "type": "array",
+          "description": "Claude Code tools that require approval",
+          "items": {
+            "type": "string",
+            "enum": ["Read", "Glob", "Grep", "Write", "Edit", "Bash", "WebFetch", "WebSearch", "Task", "NotebookEdit"]
+          },
+          "uniqueItems": true
+        },
+        "paths": {
+          "type": "array",
+          "description": "File path patterns that require approval before access",
+          "items": {
+            "type": "string"
+          },
+          "examples": [
+            "$PROJECT/package.json",
+            "$PROJECT/.claude/**/*.json"
+          ]
+        },
+        "commands": {
+          "type": "array",
+          "description": "Bash commands or prefixes that require approval",
+          "items": {
+            "type": "string"
+          },
+          "examples": [
+            "npm install",
+            "git commit",
+            "git push"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "deny": {
+      "type": "object",
+      "description": "Operations that are always blocked - security guardrails",
+      "properties": {
+        "paths": {
+          "type": "array",
+          "description": "File path patterns that are blocked from access",
+          "items": {
+            "type": "string"
+          },
+          "examples": [
+            "$PROJECT/.env",
+            "**/.ssh/**",
+            "**/credentials*"
+          ]
+        },
+        "commands": {
+          "type": "array",
+          "description": "Dangerous bash commands or patterns to block",
+          "items": {
+            "type": "string"
+          },
+          "examples": [
+            "rm -rf /",
+            "sudo ",
+            "chmod 777"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional documentation notes about this profile's intended use"
+    }
+  },
+  "additionalProperties": false
+}

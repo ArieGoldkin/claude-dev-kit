@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+
+# Build outputs tracked in git for Bedrock compatibility
+# dist/  — now tracked so marketplace installs include compiled bundles
+
+# Test coverage
+coverage/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Temp files
+*.tmp
+*.temp
+.cache/

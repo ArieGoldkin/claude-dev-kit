@@ -1,0 +1,10 @@
+{
+  "name": "bad-fixture",
+  "version": "0.0.0",
+  "description": "Fixture: top-level monitors — must trigger validate-manifest-shape.sh failure",
+  "monitors": [
+    {
+      "name": "context"
+    }
+  ]
+}
