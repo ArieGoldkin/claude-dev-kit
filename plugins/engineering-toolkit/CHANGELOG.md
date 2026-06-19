@@ -12,6 +12,10 @@ Skills-security audit hardening (`docs/reviews/2026-06-19_skills-security-audit.
 - **Trust-boundary notes** added to `atlassian-integration` (MCP-fetched Jira/Confluence content is untrusted) and `cmux` (WKWebView page content is untrusted).
 - **`investigate-sentry`**: parameterized the hardcoded company org-slug, 1Password vault path, and example issue ID (work→public sanitization residue) — now uses `<your-org>` / `<your-vault>` placeholders.
 
+### Changed
+
+- **`auto-research` now directs research toward connected MCP sources.** When a goal references internal context (a ticket, an internal doc, a prior decision), the orchestrator consults the session's connected MCP servers (Atlassian, Google Drive, …) as first-class sources alongside web search, discovering tool names via ToolSearch. Pairs with `/ctk:web-research`'s internal-plus-web blend; MCP results are treated as untrusted data.
+
 ## [2.7.1] - 2026-06-17 — skill namespacing fix, CSO trigger suffixes, cmux skill
 
 ### Fixed
