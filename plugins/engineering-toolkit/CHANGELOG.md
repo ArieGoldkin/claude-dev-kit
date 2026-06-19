@@ -2,6 +2,16 @@
 
 All notable changes to the engineering-toolkit (`etk`) plugin will be documented in this file.
 
+## [2.7.2] - 2026-06-19 — security: review-mr injection defense; trust-boundary notes; sentry scrub
+
+Skills-security audit hardening (`docs/reviews/2026-06-19_skills-security-audit.md`).
+
+### Security
+
+- **`review-mr`**: the MR diff/title/description are now framed as untrusted, attacker-controlled input in the shared agent Scope block (phase 5), with an injection / finding-suppression sanity check in synthesis (phase 6) — a malicious PR can no longer silently steer the review.
+- **Trust-boundary notes** added to `atlassian-integration` (MCP-fetched Jira/Confluence content is untrusted) and `cmux` (WKWebView page content is untrusted).
+- **`investigate-sentry`**: parameterized the hardcoded company org-slug, 1Password vault path, and example issue ID (work→public sanitization residue) — now uses `<your-org>` / `<your-vault>` placeholders.
+
 ## [2.7.1] - 2026-06-17 — skill namespacing fix, CSO trigger suffixes, cmux skill
 
 ### Fixed

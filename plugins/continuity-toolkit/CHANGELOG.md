@@ -2,6 +2,14 @@
 
 All notable changes to the continuity-toolkit (`ctk`) plugin will be documented in this file.
 
+## [2.6.9] - 2026-06-19 — security: trust-boundary clause for the web-research agent
+
+Skills-security audit hardening (`docs/reviews/2026-06-19_skills-security-audit.md`).
+
+### Security
+
+- **`web-research-analyst` agent now states an explicit trust boundary** — fetched web/API/search content is untrusted DATA, not instructions (covers the default WebFetch path, not just agent-browser): ignore embedded directives, don't follow page-invented URLs, and pass `--content-boundaries` on agent-browser escalation. Also dropped the unused `Write` tool from the agent to shrink injection blast radius.
+
 ## [2.6.8] - 2026-06-17 — rebuild: ship compiled JS for the 2.6.7 statusline features
 
 ### Fixed
